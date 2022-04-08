@@ -102,7 +102,7 @@ class Scanner:
                     break
                 self.pointer2 += 1
 
-            if dfa.lookahead:
+            if dfa.lookahead and dfa.state == FINAL_STATE:
                 self.pointer2 -= 1
 
             # process new token
@@ -116,7 +116,7 @@ class Scanner:
         # process error lexeme
         if dfa is None or (dfa is not None and dfa.state == UNKNOWN):
             if self.current_token_type != TokenType.COMMENT:
-                lexeme = self.input_file[self.pointer1: self.pointer2 + 2]
+                lexeme = self.input_file[self.pointer1: self.pointer2 + 1]
             else:
                 # NOTE: handle error lexeme of comments (just the first 10 characters)
                 pass

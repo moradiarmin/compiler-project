@@ -40,7 +40,6 @@ class NumberDFA(DFA):
             elif action == ".":
                 next_state = 2
             elif not action.isalpha() and not action in ["!", "$"]:
-                cls.lookahead = True
                 next_state = FINAL_STATE
             else:
                 next_state = UNKNOWN
@@ -52,7 +51,6 @@ class NumberDFA(DFA):
             if action.isdigit():
                 next_state = 3
             elif not action.isalpha() and not action in ["!", "$"]:
-                cls.lookahead = True
                 next_state = FINAL_STATE
             else:
                 next_state = UNKNOWN
@@ -60,7 +58,7 @@ class NumberDFA(DFA):
         else:
             next_state = UNKNOWN
 
-        if next_state == UNKNOWN:
+        if next_state == FINAL_STATE:
             cls.lookahead = True
 
         cls.state = next_state
@@ -87,7 +85,6 @@ class SymbolDFA(DFA):
         state = cls.state
         next_state: int = UNKNOWN
 
-
         if state == 0:
             if action in "".join(cls.symbol_chars[2:]):
                 next_state = FINAL_STATE
@@ -102,17 +99,17 @@ class SymbolDFA(DFA):
             next_state = FINAL_STATE
             if action != cls.symbol_chars[0]:
                 cls.lookahead = True
-        
+                    
         elif state == 2:
             if action == cls.symbol_chars[1]:
                 next_state = FINAL_STATE
             else:
-                cls.lookahead = True
-                
                 # i.e. '*/' -> unmatched comment
                 if action == "/":
                     next_state = UNKNOWN
                 else:
                     next_state = FINAL_STATE
-        
+                    cls.lookahead = True
+
+        cls.state = next_state
         return next_state
