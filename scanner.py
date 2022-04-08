@@ -10,7 +10,7 @@ class TokenType(Enum):
     KEYWORD = "KEYWORD"
     SYMBOL = "SYMBOL"
     COMMENT = "COMMENT" # seems ugly :)
-    WHITESPACE = "WHITESPACE"
+    WHITESPACE = "WHITESPACE" # seems ugly :)
 
 class Token:
     def __init__(self, type: TokenType, lexeme: str) -> None:
@@ -46,6 +46,7 @@ class Scanner:
         self.symbol_table = SymbolTable()
         self.errors: List[Error] = list()
 
+
     def _select_dfa(self, first_char: str) -> Optional[DFA]:
         """specifies suitable DFA for the current token
 
@@ -54,11 +55,21 @@ class Scanner:
         """
 
         first_char = self.input_file[self.pointer1]
+        
         if first_char.isdigit():
             self.current_token_type = TokenType.NUMBER
             return NumberDFA
         
+        elif first_char in WhitespaceDFA.whitespace_chars:
+            self.current_token_type = TokenType.WHITESPACE
+            return WhitespaceDFA
+
+        elif first_char in SymbolDFA.symbol_chars:
+            self.current_token_type = TokenType.SYMBOL
+            return SymbolDFA
+
         return None
+
 
     def _get_err_type(self, lexeme: str) -> ErrorType:
         """specifies type of the leximal error"""
@@ -70,12 +81,15 @@ class Scanner:
         elif self.current_token_type is None:
             return ErrorType.INVALID_INPUT
 
+
     def _get_next_token(self) -> Tuple[Optional[Token], Optional[Error]]:
         dfa: Optional[DFA] = self._select_dfa()
-        token: Optional[Token] = None
-        err: Optional[Error] = None
+        new_token: Optional[Token] = None
+        new_err: Optional[Error] = None
         
-        if dfa is not None:       
+        if dfa is not None:   
+            dfa.reset()
+
             while True:
                 ch = self.input_file[self.pointer2]
             
@@ -92,11 +106,12 @@ class Scanner:
                 self.pointer2 -= 1
 
             # process new token
-            if dfa.state == FINAL_STATE and self.current_token_type != TokenType.COMMENT:
+            if dfa.state == FINAL_STATE and self.current_token_type not in \
+                    [TokenType.WHITESPACE, TokenType.COMMENT]:
                 lexeme = self.input_file[self.pointer1: self.pointer2 + 1]
                 token_type = self.current_token_type
-                token = Token(token_type, lexeme)
-                self.tokens.append(token)
+                new_token = Token(token_type, lexeme)
+                self.tokens.append(new_token)
 
         # process error lexeme
         if dfa is None or (dfa is not None and dfa.state == UNKNOWN):
@@ -106,15 +121,14 @@ class Scanner:
                 # NOTE: handle error lexeme of comments (just the first 10 characters)
                 pass
             err_type = self._get_err_type()
-            err = Error(self.current_line_num, lexeme, err_type)
-            self.errors.append(err)
+            new_err = Error(self.current_line_num, lexeme, err_type)
+            self.errors.append(new_err)
 
-        # update attrs for extracting new token
+        # update attributes for extracting the next token
         self.pointer2 += 1
         self.pointer1 = self.pointer2
-        dfa.reset()
 
-        return token, err
+        return new_token, new_err
 
 
     def scan(self):                

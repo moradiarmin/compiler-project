@@ -21,7 +21,7 @@ class DFA:
 
     @abstractmethod
     @classmethod
-    def move(cls, action: str) -> Optional[int]:
+    def move(cls, action: str) -> int:
         """move within DFA and return next state"""
 
 
@@ -42,7 +42,9 @@ class NumberDFA(DFA):
             elif not action.isalpha() and not action in ["!", "$"]:
                 cls.lookahead = True
                 next_state = FINAL_STATE
-        
+            else:
+                next_state = UNKNOWN
+
         elif state == 2 and action.isdigit():
             next_state = 3
         
@@ -52,11 +54,65 @@ class NumberDFA(DFA):
             elif not action.isalpha() and not action in ["!", "$"]:
                 cls.lookahead = True
                 next_state = FINAL_STATE
+            else:
+                next_state = UNKNOWN
         
+        else:
+            next_state = UNKNOWN
+
         if next_state == UNKNOWN:
             cls.lookahead = True
 
         cls.state = next_state
         return next_state
 
+
+class WhitespaceDFA(DFA):
+    whitespace_chars = ["", "\r", "\t", "\n", "\v", "\f"]
+
+    def move(cls, action: str):
+        state = cls.state
+        next_state: int = UNKNOWN
+
+        if state == 0 and action in cls.whitespace_chars:
+            next_state = FINAL_STATE
+        
+        cls.state = next_state
+        return next_state
+
+class SymbolDFA(DFA):
+    symbol_chars = ["=", "*", ";", ":","[", "]", "(", ")", "+", "-", "<"]
+
+    def move(cls, action: str):
+        state = cls.state
+        next_state: int = UNKNOWN
+
+
+        if state == 0:
+            if action in "".join(cls.symbol_chars[2:]):
+                next_state = FINAL_STATE
+            elif action == cls.symbol_chars[0]:
+                next_state = 1
+            elif action == cls.symbol_chars[1]:
+                next_state = 2
+            else:
+                next_state = UNKNOWN
+
+        elif state == 1:
+            next_state = FINAL_STATE
+            if action != cls.symbol_chars[0]:
+                cls.lookahead = True
+        
+        elif state == 2:
+            if action == cls.symbol_chars[1]:
+                next_state = FINAL_STATE
+            else:
+                cls.lookahead = True
                 
+                # i.e. '*/' -> unmatched comment
+                if action == "/":
+                    next_state = UNKNOWN
+                else:
+                    next_state = FINAL_STATE
+        
+        return next_state
