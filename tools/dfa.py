@@ -15,7 +15,8 @@ class DFA:
 
     def reset(cls):
         """reset DFA to initial state"""
-        state: int = 0
+        cls.state = 0
+        cls.lookahead = False
         
     @abstractmethod
     @classmethod
