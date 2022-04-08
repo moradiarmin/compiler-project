@@ -13,11 +13,12 @@ class DFA:
     lookahead: bool = False
     """whether lookahead occured or not"""
 
+    @classmethod
     def reset(cls):
         """reset DFA to initial state"""
         cls.state = 0
         cls.lookahead = False
-        
+
     @abstractmethod
     @classmethod
     def move(cls, action: str) -> Optional[int]:
