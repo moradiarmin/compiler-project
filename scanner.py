@@ -47,7 +47,7 @@ class Scanner:
         self.errors: List[Error] = list()
 
 
-    def _select_dfa(self, first_char: str) -> Optional[DFA]:
+    def _select_dfa(self) -> Optional[DFA]:
         """specifies suitable DFA for the current token
 
         Args:
@@ -67,6 +67,9 @@ class Scanner:
         elif first_char in SymbolDFA.symbol_chars:
             self.current_token_type = TokenType.SYMBOL
             return SymbolDFA
+        
+        elif first_char.isalpha():
+            self.current_token_type = TokenType.ID # a final check on being a keyword while creating the lexeme
 
         return None
 
@@ -83,7 +86,7 @@ class Scanner:
 
 
     def _get_next_token(self) -> Tuple[Optional[Token], Optional[Error]]:
-        dfa: Optional[DFA] = self._select_dfa()
+        dfa: Optional[DFA] = self._select_dfa() # q: shouldnt select dfa have an input?
         new_token: Optional[Token] = None
         new_err: Optional[Error] = None
         
@@ -109,6 +112,8 @@ class Scanner:
             if dfa.state == FINAL_STATE and self.current_token_type not in \
                     [TokenType.WHITESPACE, TokenType.COMMENT]:
                 lexeme = self.input_file[self.pointer1: self.pointer2 + 1]
+                if current_token_type == TokenType.ID and lexeme in KeywordDFA.keywords:
+                    current_token_type = TokenType.KEYWORD
                 token_type = self.current_token_type
                 new_token = Token(token_type, lexeme)
                 self.tokens.append(new_token)
