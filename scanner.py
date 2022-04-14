@@ -154,11 +154,11 @@ class Scanner:
                     self._current_token_type = None
                     lexeme = self._inp_file[self._p1: self._p1 + 1]
 
-                    #lookahead is not permitted
-                    self._p2 -= 1
                     if self._inp_file[self._p2] == "\n":
                         self._current_line_num -=1
-
+                    #lookahead is not permitted
+                    self._p2 -= 1
+                    
                 # comment opened by '/*' and not closed
                 else:
                     lexeme = self._inp_file[self._p1: self._p1+10]
