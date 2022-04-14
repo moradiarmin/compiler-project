@@ -67,7 +67,7 @@ class NumberDFA(DFA):
 
 
 class WhitespaceDFA(DFA):
-    whitespace_chars = ["", "\r", "\t", "\n", "\v", "\f"]
+    whitespace_chars = [" ", "\r", "\t", "\n", "\v", "\f"]
 
     def move(cls, action: str):
         state = cls.state
@@ -80,33 +80,33 @@ class WhitespaceDFA(DFA):
         return next_state
 
 class SymbolDFA(DFA):
-    symbol_chars = ["=", "*", ";", ":","[", "]", "(", ")", "+", "-", "<"]
+    chars = ["=", "*", ";", ":","[", "]", "(", ")", "+", "-", "<"]
 
     def move(cls, action: str):
         state = cls.state
         next_state: int = UNKNOWN
 
         if state == 0:
-            if action in "".join(cls.symbol_chars[2:]):
+            if action in "".join(cls.chars[2:]):
                 next_state = FINAL_STATE
-            elif action == cls.symbol_chars[0]:
+            elif action == cls.chars[0]:
                 next_state = 1
-            elif action == cls.symbol_chars[1]:
+            elif action == cls.chars[1]:
                 next_state = 2
             else:
                 next_state = UNKNOWN
 
         elif state == 1:
             next_state = FINAL_STATE
-            if action != cls.symbol_chars[0]:
+            if action != cls.chars[0]:
                 cls.lookahead = True
                     
         elif state == 2:
-            if action == cls.symbol_chars[1]:
+            if action == cls.chars[1]:
                 next_state = FINAL_STATE
             else:
                 # i.e. '*/' -> unmatched comment
-                if action == "/":
+                if action in ["/", "!", "$"]:
                     next_state = UNKNOWN
                 else:
                     next_state = FINAL_STATE
@@ -136,15 +136,8 @@ class IDDFA(DFA):
         cls.state = next_state
         return next_state
 
-class KeywordDFA(DFA):
-    keywords = ["break", "continue", "def", "else","if", "return", "while"]
-
-    def move(cls, action: str):
-        pass
-
 class CommentDFA(DFA):
-    symbol_chars = ["#", "/" "*"]
-
+    chars = ["#", "/"]
 
     def move(cls, action: str): # what about lookahead and unknown and these stuff?
         state = cls.state
@@ -158,6 +151,8 @@ class CommentDFA(DFA):
         elif state == 1:
             if action == "*":
                 next_state = 2
+            else:
+                next_state = UNKNOWN
         elif state == 2:
             if action != "*":
                 next_state = 2

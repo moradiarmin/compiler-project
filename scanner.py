@@ -23,10 +23,10 @@ class Token:
         return f"({self.type}, {self.lexeme})"
 
 class ErrorType:
-    INVALID_INPUT = 1
-    INVALID_NUMBER = 2
-    UNCLOSED_COMMENT = 3
-    UNMATCHED_COMMENT = 4
+    INVALID_INPUT = "Invalid input"
+    INVALID_NUMBER = "Invalid number"
+    UNCLOSED_COMMENT = "Unclosed comment"
+    UNMATCHED_COMMENT = "Unmatched comment"
 
 class Error:
     def __init__(self, line: int, lexeme: str, type: ErrorType) -> None:
@@ -78,7 +78,7 @@ class Scanner:
             self._current_token_type = TokenType.WHITESPACE
             return WhitespaceDFA
 
-        elif first_char in SymbolDFA.symbol_chars:
+        elif first_char in SymbolDFA.chars:
             self._current_token_type = TokenType.SYMBOL
             return SymbolDFA
         
@@ -86,7 +86,7 @@ class Scanner:
             self._current_token_type = TokenType.ID # a final check on being a keyword while creating the lexeme
             return IDDFA
         
-        elif first_char in ["#", "/"]:
+        elif first_char in CommentDFA.chars:
             self._current_token_type = TokenType.COMMENT
             return CommentDFA
 
@@ -99,10 +99,9 @@ class Scanner:
         if self._current_token_type == TokenType.NUMBER:
             return ErrorType.INVALID_NUMBER        
         elif self._current_token_type == TokenType.COMMENT:
-            if lexeme == "*/":
-                return ErrorType.UNMATCHED_COMMENT
-            else:
-                return ErrorType.UNCLOSED_COMMENT
+            return ErrorType.UNCLOSED_COMMENT
+        elif lexeme == "*/":
+            return ErrorType.UNMATCHED_COMMENT
         else:
             return ErrorType.INVALID_INPUT
 
@@ -145,12 +144,28 @@ class Scanner:
                     self._symbol_table.append(lexeme)
                 self._tokens.append(new_token)
 
-        # process error lexeme
-        if dfa is None or (dfa is not None and dfa.state == UNKNOWN):
-            if self._current_token_type != TokenType.COMMENT:
-                lexeme = self._inp_file[self._p1: self._p2 + 1]
+        # process error caused by the lexeme
+        if dfa is None or (dfa is not None and dfa.state == UNKNOWN) or \
+                self._p2 == len(self._inp_file):
+
+            if self._current_token_type == TokenType.COMMENT:
+                # comment opened only by character '/'
+                if dfa.state == UNKNOWN:
+                    self._current_token_type = None
+                    lexeme = self._inp_file[self._p1: self._p1 + 1]
+
+                    #lookahead is not permitted
+                    self._p2 -= 1
+                    if self._inp_file[self._p2] == "\n":
+                        self._current_line_num -=1
+
+                # comment opened by '/*' and not closed
+                else:
+                    lexeme = self._inp_file[self._p1: self._p1+10]
+                    if self._p2 > self._p1 + 9:
+                        lexeme += "..."
             else:
-                lexeme = self._inp_file[self._p1+1: self._p1+11]
+                lexeme = self._inp_file[self._p1: self._p2 + 1]
 
             err_type = self._get_err_type(lexeme)
             new_err = Error(self._current_line_num, lexeme, err_type)
@@ -174,8 +189,10 @@ class Scanner:
             for token in self._tokens:
                 if token.line > line_num:
                     line_num = token.line
-                    f.write(" ".join(tokens_in_line))
-                    f.write("\n")
+                    if len(tokens_in_line) > 1:
+                        f.write(" ".join(tokens_in_line))
+                        f.write("\n")
+                        
                     tokens_in_line.clear()
                     tokens_in_line.append(f"{line_num}.")
                 
@@ -195,8 +212,10 @@ class Scanner:
             for err in self._errs:
                 if err.line > line_num:
                     line_num = err.line
-                    f.write(" ".join(errs_in_line))
-                    f.write("\n")
+                    if len(errs_in_line) > 1:
+                        f.write(" ".join(errs_in_line))
+                        f.write("\n")
+                    
                     errs_in_line.clear()
                     errs_in_line.append(f"{line_num}.")
                 
