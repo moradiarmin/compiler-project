@@ -1,15 +1,14 @@
-from abc import abstractmethod
+from abc import ABC, abstractclassmethod, abstractmethod
 from typing import Dict, List, Optional
 from urllib.parse import _NetlocResultMixinStr
 
 FINAL_STATE = -1
 UNKNOWN = -2
 
-class DFA:
+class DFA(ABC):
     """a general DFA class to define its policy"""
     
     state: int = 0
-    
     """ current state of the DFA"""
 
     lookahead: bool = False
@@ -21,8 +20,8 @@ class DFA:
         cls.state = 0
         cls.lookahead = False
 
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def move(cls, action: str) -> int:
         """move within DFA and return next state"""
 
@@ -127,9 +126,13 @@ class IDDFA(DFA):
                 next_state = 1
         elif state == 1:
             if action.isalpha() or action.isdigit():
-                next_state = FINAL_STATE
+                next_state = 1
+            elif action in ["!", "$"]:
+                next_state = UNKNOWN
             else:
-                next_state = 2
+                next_state = FINAL_STATE
+                cls.lookahead = True
+                
         cls.state = next_state
         return next_state
 

@@ -1,10 +1,10 @@
-from enum import Enum
-from typing import Callable, List, Optional, Tuple
+import os
+from typing import Callable, List, Optional, Tuple, Union
 
 from .tools.dfa import *
 
 
-class TokenType(Enum):
+class TokenType:
     NUMBER = "NUMBER"
     ID = "ID"
     KEYWORD = "KEYWORD"
@@ -13,63 +13,82 @@ class TokenType(Enum):
     WHITESPACE = "WHITESPACE" # seems ugly :)
 
 class Token:
-    def __init__(self, type: TokenType, lexeme: str) -> None:
-        self.type: TokenType = type
+    def __init__(self, line: int, lexeme: str, type: TokenType) -> None:
+        self.line: int = line
         self.lexeme: str = lexeme
+        self.type: TokenType = type
 
-class SymbolTable:
-        def __init__(self):
-            self.arr = []
-        def add_symbol(token):
-            pass
+    @property
+    def all_in_one(self):
+        return f"({self.type}, {self.lexeme})"
 
-class Error:
-        def __init__(self, line, text, type):
-            self.line = line
-            self.text = text
-            self.type = type
-class ErrorType(Enum):
+class ErrorType:
     INVALID_INPUT = 1
     INVALID_NUMBER = 2
     UNCLOSED_COMMENT = 3
     UNMATCHED_COMMENT = 4
 
-class Scanner:
-    def __init__(self, input_address: str) -> None:
-        self.input_file: str = open(input_address).read()
-        self.current_line_num: int = 1
-        self.current_token_type: TokenType = None
-        self.pointer1: int = 0
-        self.pointer2: int = self.pointer1
+class Error:
+    def __init__(self, line: int, lexeme: str, type: ErrorType) -> None:
+        self.line: int = line
+        self.lexeme: str = lexeme
+        self.type: ErrorType = type
 
-        self.tokens: List[Token] = list()
-        self.symbol_table = SymbolTable()
-        self.errors: List[Error] = list()
+    @property
+    def all_in_one(self):
+        return f"({self.lexeme}, {self.type})"
+
+class Scanner:
+    """scanner module
+
+    Args:
+        input_dir (str): directory of the input code to be scanned
+        save_dir (str): directory where scanner outputs are saved
+    """
+    def __init__(self, input_dir: str, save_dir: str) -> None:
+        self._inp_file: str = open(input_dir).read()
+        self._save_dir: str = save_dir
+        os.makedirs(self._save_dir, exist_ok=True)
+
+        self._current_line_num: int = 1
+        self._current_token_type: TokenType = None
+        self._p1: int = 0
+        self._p2: int = self._p1
+
+        self._tokens: List[Token] = list()
+        self._keywords = ["break", "continue", "def", "else","if", "return", "while"]
+        self._symbol_table: List[Token] = [*self._keywords]
+        self._errs: List[Error] = list()
 
 
     def _select_dfa(self) -> Optional[DFA]:
-        """specifies suitable DFA for the current token
+        """specifies suitable DFA for the current token based on its first character
 
         Args:
             first_char (str): first character of the current token
         """
 
-        first_char = self.input_file[self.pointer1]
+        first_char = self._inp_file[self._p1]
         
         if first_char.isdigit():
-            self.current_token_type = TokenType.NUMBER
+            self._current_token_type = TokenType.NUMBER
             return NumberDFA
         
         elif first_char in WhitespaceDFA.whitespace_chars:
-            self.current_token_type = TokenType.WHITESPACE
+            self._current_token_type = TokenType.WHITESPACE
             return WhitespaceDFA
 
         elif first_char in SymbolDFA.symbol_chars:
-            self.current_token_type = TokenType.SYMBOL
+            self._current_token_type = TokenType.SYMBOL
             return SymbolDFA
         
         elif first_char.isalpha():
-            self.current_token_type = TokenType.ID # a final check on being a keyword while creating the lexeme
+            self._current_token_type = TokenType.ID # a final check on being a keyword while creating the lexeme
+            return IDDFA
+        
+        elif first_char in ["#", "/"]:
+            self._current_token_type = TokenType.COMMENT
+            return CommentDFA
 
         return None
 
@@ -77,15 +96,20 @@ class Scanner:
     def _get_err_type(self, lexeme: str) -> ErrorType:
         """specifies type of the leximal error"""
 
-        if self.current_token_type == TokenType.NUMBER:
+        if self._current_token_type == TokenType.NUMBER:
             return ErrorType.INVALID_NUMBER        
-        elif lexeme == "*/":
-            return ErrorType.UNMATCHED_COMMENT
-        elif self.current_token_type is None:
+        elif self._current_token_type == TokenType.COMMENT:
+            if lexeme == "*/":
+                return ErrorType.UNMATCHED_COMMENT
+            else:
+                return ErrorType.UNCLOSED_COMMENT
+        else:
             return ErrorType.INVALID_INPUT
 
 
-    def _get_next_token(self) -> Tuple[Optional[Token], Optional[Error]]:
+    def _get_next_token(self) -> Union[Token, Error]:
+        """extracts next existing token, O.W. finds its error"""
+
         dfa: Optional[DFA] = self._select_dfa() # q: shouldnt select dfa have an input?
         new_token: Optional[Token] = None
         new_err: Optional[Error] = None
@@ -93,60 +117,113 @@ class Scanner:
         if dfa is not None:   
             dfa.reset()
 
-            while True:
-                ch = self.input_file[self.pointer2]
+            while self._p2 < len(self._inp_file):
+                ch = self._inp_file[self._p2]
             
                 # handle new line
                 if ch=="\n":
-                    self.current_line_num += 1
-            
-                dfa.move(ch)
+                    self._current_line_num += 1
+                dfa.move(dfa, ch)
                 if dfa.state in [FINAL_STATE, UNKNOWN]:
                     break
-                self.pointer2 += 1
+                self._p2 += 1
 
             if dfa.lookahead and dfa.state == FINAL_STATE:
-                self.pointer2 -= 1
+                self._p2 -= 1
 
             # process new token
-            if dfa.state == FINAL_STATE and self.current_token_type not in \
+            if dfa.state == FINAL_STATE and self._current_token_type not in \
                     [TokenType.WHITESPACE, TokenType.COMMENT]:
-                lexeme = self.input_file[self.pointer1: self.pointer2 + 1]
-                if current_token_type == TokenType.ID and lexeme in KeywordDFA.keywords:
-                    current_token_type = TokenType.KEYWORD
-                token_type = self.current_token_type
-                new_token = Token(token_type, lexeme)
-                self.tokens.append(new_token)
+                lexeme = self._inp_file[self._p1: self._p2 + 1]
+                if lexeme in self._keywords:
+                    self._current_token_type = TokenType.KEYWORD
+                token_type = self._current_token_type
+                new_token = Token(self._current_line_num, lexeme, token_type)
+                
+                if lexeme not in self._symbol_table and \
+                        self._current_token_type in [TokenType.ID, TokenType.KEYWORD]:
+                    self._symbol_table.append(lexeme)
+                self._tokens.append(new_token)
 
         # process error lexeme
         if dfa is None or (dfa is not None and dfa.state == UNKNOWN):
-            if self.current_token_type != TokenType.COMMENT:
-                lexeme = self.input_file[self.pointer1: self.pointer2 + 1]
+            if self._current_token_type != TokenType.COMMENT:
+                lexeme = self._inp_file[self._p1: self._p2 + 1]
             else:
-                # NOTE: handle error lexeme of comments (just the first 10 characters)
-                pass
-            err_type = self._get_err_type()
-            new_err = Error(self.current_line_num, lexeme, err_type)
-            self.errors.append(new_err)
+                lexeme = self._inp_file[self._p1+1: self._p1+11]
+
+            err_type = self._get_err_type(lexeme)
+            new_err = Error(self._current_line_num, lexeme, err_type)
+            self._errs.append(new_err)
 
         # update attributes for extracting the next token
-        self.pointer2 += 1
-        self.pointer1 = self.pointer2
+        self._p2 += 1
+        self._p1 = self._p2
 
-        return new_token, new_err
+        return new_token if new_token is not None else new_err
 
+    
+    def _save_tokens(self) -> None:
+        """save tokens into a text file"""
+        
+        line_num = 1
+        tokens_in_line: List[Token] = [f"{line_num}."]
+        save_dir = os.path.join(self._save_dir, 'tokens.txt')
+        
+        with open(save_dir, 'w') as f:
+            for token in self._tokens:
+                if token.line > line_num:
+                    line_num = token.line
+                    f.write(" ".join(tokens_in_line))
+                    f.write("\n")
+                    tokens_in_line.clear()
+                    tokens_in_line.append(f"{line_num}.")
+                
+                tokens_in_line.append(token.all_in_one)
+
+            f.write(" ".join(tokens_in_line))
+
+    
+    def _save_errs(self) -> None:
+        """saves all errors found in a text file"""
+
+        line_num = 1
+        errs_in_line: List[Token] = [f"{line_num}."]
+        save_dir = os.path.join(self._save_dir, 'lexical_errors.txt')
+        
+        with open(save_dir, 'w') as f:
+            for err in self._errs:
+                if err.line > line_num:
+                    line_num = err.line
+                    f.write(" ".join(errs_in_line))
+                    f.write("\n")
+                    errs_in_line.clear()
+                    errs_in_line.append(f"{line_num}.")
+                
+                errs_in_line.append(err.all_in_one)
+
+            f.write(" ".join(errs_in_line))
+
+    
+    def _save_symbol_table(self) -> None:
+        """saves symbol table into a text file"""
+
+        save_dir = os.path.join(self._save_dir, 'symbol_table.txt')
+        with open(save_dir, 'w') as f:
+            for ix, symbol in enumerate(self._symbol_table):
+                f.write(f"{ix + 1}. {symbol}\n")
+
+    def _save(self):
+        """saves tokens, errors and the symbol table in separate text files"""
+
+        self._save_tokens()
+        self._save_errs()
+        self._save_symbol_table()
 
     def scan(self):                
-        while self.pointer1 < len(self.input_file):
-            token, error, is_token_finished = self._get_next_token() # ISSUE: is is_token finished needed?
-            if is_token_finished:
-                self.pointer1 = self.pointer2
+        """scans the whole input file to extract all tokens, errors and a single symbol table"""
 
-def whitespace_dfa():
-    pass
-def ID_dfa():
-    pass
-def symbol_dfa():
-    pass
-        
-# complete each of these functions...
+        while self._p1 < len(self._inp_file):
+            self._get_next_token()
+
+        self._save()
