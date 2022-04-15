@@ -1,7 +1,8 @@
 import os
 from typing import Callable, List, Optional, Tuple, Union
+from xml.etree.ElementTree import Comment
 
-from .tools.dfa import *
+from tools.dfa import *
 
 
 class TokenType:
@@ -54,6 +55,8 @@ class Scanner:
         self._current_token_type: TokenType = None
         self._p1: int = 0
         self._p2: int = self._p1
+
+        self._multiline_comment_start_line = None
 
         self._tokens: List[Token] = list()
         self._keywords = ["break", "continue", "def", "else","if", "return", "while"]
@@ -109,11 +112,14 @@ class Scanner:
     def _get_next_token(self) -> Union[Token, Error]:
         """extracts next existing token, O.W. finds its error"""
 
-        dfa: Optional[DFA] = self._select_dfa() # q: shouldnt select dfa have an input?
+        dfa: Optional[DFA] = self._select_dfa()
         new_token: Optional[Token] = None
         new_err: Optional[Error] = None
         
         if dfa is not None:   
+            if dfa is CommentDFA:
+                # print(self._current_line_num)
+                self._multiline_comment_start_line = self._current_line_num # exactly when each '/' character is seen
             dfa.reset()
 
             while self._p2 < len(self._inp_file):
@@ -168,7 +174,11 @@ class Scanner:
                 lexeme = self._inp_file[self._p1: self._p2 + 1]
 
             err_type = self._get_err_type(lexeme)
-            new_err = Error(self._current_line_num, lexeme, err_type)
+            if not err_type == ErrorType.UNCLOSED_COMMENT:
+                new_err = Error(self._current_line_num, lexeme, err_type)
+            else:
+                new_err = Error(self._multiline_comment_start_line, lexeme, err_type)
+
             self._errs.append(new_err)
 
         # update attributes for extracting the next token
@@ -209,19 +219,23 @@ class Scanner:
         save_dir = os.path.join(self._save_dir, 'lexical_errors.txt')
         
         with open(save_dir, 'w') as f:
-            for err in self._errs:
-                if err.line > line_num:
-                    line_num = err.line
-                    if len(errs_in_line) > 1:
-                        f.write(" ".join(errs_in_line))
-                        f.write("\n")
+            if len(self._errs) == 0:
+                f.write("There is no lexical error.")
+            else:
+                for err in self._errs:
+                    # print(err.lexeme, err.line)
+                    if err.line > line_num:
+                        line_num = err.line
+                        if len(errs_in_line) > 1:
+                            f.write(" ".join(errs_in_line))
+                            f.write("\n")
+                        
+                        errs_in_line.clear()
+                        errs_in_line.append(f"{line_num}.")
                     
-                    errs_in_line.clear()
-                    errs_in_line.append(f"{line_num}.")
-                
-                errs_in_line.append(err.all_in_one)
+                    errs_in_line.append(err.all_in_one)
 
-            f.write(" ".join(errs_in_line))
+                f.write(" ".join(errs_in_line))
 
     
     def _save_symbol_table(self) -> None:
