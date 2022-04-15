@@ -107,7 +107,7 @@ class SymbolDFA(DFA):
         elif state == 2:
             if action == cls.chars[1]:
                 next_state = FINAL_STATE
-            elif action in cls.others:
+            elif action in cls.others and action != "/":
                 next_state = FINAL_STATE
                 cls.lookahead = True
             else:

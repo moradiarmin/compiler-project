@@ -198,30 +198,31 @@ class Scanner:
         """save tokens into a text file"""
         
         line_num = 1
-        tokens_in_line: List[Token] = [f"{line_num}."]
+        tokens_in_line: List[Token] = list()
         save_dir = os.path.join(self._save_dir, 'tokens.txt')
         
         with open(save_dir, 'w') as f:
             for token in self._tokens:
                 if token.line > line_num:
-                    line_num = token.line
-                    if len(tokens_in_line) > 1:
-                        f.write(" ".join(tokens_in_line))
+                    if tokens_in_line:
+                        tokens = f"{line_num}.\t" + " ".join(tokens_in_line)
+                        f.write(tokens)
                         f.write("\n")
                         
+                    line_num = token.line
                     tokens_in_line.clear()
-                    tokens_in_line.append(f"{line_num}.")
                 
                 tokens_in_line.append(token.all_in_one)
 
-            f.write(" ".join(tokens_in_line))
+            tokens = f"{line_num}.\t" + " ".join(tokens_in_line)
+            f.write(tokens)
 
     
     def _save_errs(self) -> None:
         """saves all errors found in a text file"""
 
         line_num = 1
-        errs_in_line: List[Token] = [f"{line_num}."]
+        errs_in_line: List[Token] = list()
         save_dir = os.path.join(self._save_dir, 'lexical_errors.txt')
         
         with open(save_dir, 'w') as f:
@@ -230,17 +231,18 @@ class Scanner:
             else:
                 for err in self._errs:
                     if err.line > line_num:
-                        line_num = err.line
-                        if len(errs_in_line) > 1:
-                            f.write(" ".join(errs_in_line))
+                        if errs_in_line:
+                            errs = f"{line_num}.\t" + " ".join(errs_in_line)
+                            f.write(errs)
                             f.write("\n")
-                        
+
+                        line_num = err.line                        
                         errs_in_line.clear()
-                        errs_in_line.append(f"{line_num}.")
                     
                     errs_in_line.append(err.all_in_one)
 
-                f.write(" ".join(errs_in_line))
+                errs = f"{line_num}.\t" + " ".join(errs_in_line)
+                f.write(errs)
 
     
     def _save_symbol_table(self) -> None:
@@ -249,7 +251,7 @@ class Scanner:
         save_dir = os.path.join(self._save_dir, 'symbol_table.txt')
         with open(save_dir, 'w') as f:
             for ix, symbol in enumerate(self._symbol_table):
-                f.write(f"{ix + 1}. {symbol}\n")
+                f.write(f"{ix + 1}.\t{symbol}\n")
 
     def _save(self):
         """saves tokens, errors and the symbol table in separate text files"""
