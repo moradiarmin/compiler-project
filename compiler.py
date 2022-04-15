@@ -4,5 +4,6 @@
 from scanner import Scanner
 
 if __name__ == '__main__':
-    my_scanner = Scanner("./test_cases/phase1/T08/input.txt", "./res2/phase1/T08")
+    N = 6
+    my_scanner = Scanner(f"./test_cases/phase1/T0{N}/input.txt", f"./res2/phase1/T0{N}")
     my_scanner.scan()

@@ -2,6 +2,8 @@ import os
 from typing import Callable, List, Optional, Tuple, Union
 from xml.etree.ElementTree import Comment
 
+from pygments import lex
+
 from tools.dfa import *
 
 
@@ -47,7 +49,7 @@ class Scanner:
         save_dir (str): directory where scanner outputs are saved
     """
     def __init__(self, input_dir: str, save_dir: str) -> None:
-        self._inp_file: str = open(input_dir).read()
+        self._inp_file: str = open(input_dir).read() + " "
         self._save_dir: str = save_dir
         os.makedirs(self._save_dir, exist_ok=True)
 
@@ -116,9 +118,8 @@ class Scanner:
         new_token: Optional[Token] = None
         new_err: Optional[Error] = None
         
-        if dfa is not None:   
+        if dfa is not None:
             if dfa is CommentDFA:
-                # print(self._current_line_num)
                 self._multiline_comment_start_line = self._current_line_num # exactly when each '/' character is seen
             dfa.reset()
 
@@ -128,6 +129,7 @@ class Scanner:
                 # handle new line
                 if ch=="\n":
                     self._current_line_num += 1
+                    print('*****', self._inp_file[self._p1:self._p2])
                 dfa.move(dfa, ch)
                 if dfa.state in [FINAL_STATE, UNKNOWN]:
                     break
@@ -144,9 +146,9 @@ class Scanner:
                     self._current_token_type = TokenType.KEYWORD
                 token_type = self._current_token_type
                 new_token = Token(self._current_line_num, lexeme, token_type)
-                
                 if lexeme not in self._symbol_table and \
                         self._current_token_type in [TokenType.ID, TokenType.KEYWORD]:
+                    print("TOKEN", self._current_line_num, lexeme)
                     self._symbol_table.append(lexeme)
                 self._tokens.append(new_token)
 
@@ -176,6 +178,8 @@ class Scanner:
             err_type = self._get_err_type(lexeme)
             if not err_type == ErrorType.UNCLOSED_COMMENT:
                 new_err = Error(self._current_line_num, lexeme, err_type)
+                print('ERROR', self._current_line_num, lexeme)
+
             else:
                 new_err = Error(self._multiline_comment_start_line, lexeme, err_type)
 
@@ -223,7 +227,6 @@ class Scanner:
                 f.write("There is no lexical error.")
             else:
                 for err in self._errs:
-                    # print(err.lexeme, err.line)
                     if err.line > line_num:
                         line_num = err.line
                         if len(errs_in_line) > 1:
