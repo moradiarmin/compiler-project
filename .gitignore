@@ -3,3 +3,4 @@ res/
 res2/
 __pycache__/
 .DS_Store
+file_checker.py

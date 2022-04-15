@@ -1,9 +1,3 @@
-import os
-from typing import Callable, List, Optional, Tuple, Union
-from xml.etree.ElementTree import Comment
-
-from pygments import lex
-
 from tools.dfa import *
 
 
@@ -51,7 +45,6 @@ class Scanner:
     def __init__(self, input_dir: str, save_dir: str) -> None:
         self._inp_file: str = open(input_dir).read() + " "
         self._save_dir: str = save_dir
-        os.makedirs(self._save_dir, exist_ok=True)
 
         self._current_line_num: int = 1
         self._current_token_type: TokenType = None
@@ -66,13 +59,13 @@ class Scanner:
         self._errs: List[Error] = list()
 
 
-    def _select_dfa(self) -> Optional[DFA]:
+    def _select_dfa(self):
         """specifies suitable DFA for the current token based on its first character
 
         Args:
             first_char (str): first character of the current token
         """
-
+        self._current_token_type = None
         first_char = self._inp_file[self._p1]
         
         if first_char.isdigit():
@@ -111,7 +104,7 @@ class Scanner:
             return ErrorType.INVALID_INPUT
 
 
-    def _get_next_token(self) -> Union[Token, Error]:
+    def _get_next_token(self):
         """extracts next existing token, O.W. finds its error"""
 
         dfa: Optional[DFA] = self._select_dfa()
@@ -121,7 +114,7 @@ class Scanner:
         if dfa is not None:
             if dfa is CommentDFA:
                 self._multiline_comment_start_line = self._current_line_num # exactly when each '/' character is seen
-            dfa.reset()
+            dfa.reset(dfa)
 
             while self._p2 < len(self._inp_file):
                 ch = self._inp_file[self._p2]
@@ -129,7 +122,6 @@ class Scanner:
                 # handle new line
                 if ch=="\n":
                     self._current_line_num += 1
-                    print('*****', self._inp_file[self._p1:self._p2])
                 dfa.move(dfa, ch)
                 if dfa.state in [FINAL_STATE, UNKNOWN]:
                     break
@@ -150,7 +142,6 @@ class Scanner:
                 new_token = Token(self._current_line_num, lexeme, token_type)
                 if lexeme not in self._symbol_table and \
                         self._current_token_type in [TokenType.ID, TokenType.KEYWORD]:
-                    print("TOKEN", self._current_line_num, lexeme)
                     self._symbol_table.append(lexeme)
                 self._tokens.append(new_token)
 
@@ -180,7 +171,6 @@ class Scanner:
             err_type = self._get_err_type(lexeme)
             if not err_type == ErrorType.UNCLOSED_COMMENT:
                 new_err = Error(self._current_line_num, lexeme, err_type)
-                print('ERROR', self._current_line_num, lexeme)
 
             else:
                 new_err = Error(self._multiline_comment_start_line, lexeme, err_type)
@@ -199,7 +189,7 @@ class Scanner:
         
         line_num = 1
         tokens_in_line: List[Token] = list()
-        save_dir = os.path.join(self._save_dir, 'tokens.txt')
+        save_dir = 'tokens.txt'
         
         with open(save_dir, 'w') as f:
             for token in self._tokens:
@@ -224,7 +214,7 @@ class Scanner:
 
         line_num = 1
         errs_in_line: List[Token] = list()
-        save_dir = os.path.join(self._save_dir, 'lexical_errors.txt')
+        save_dir = 'lexical_errors.txt'
         
         with open(save_dir, 'w') as f:
             if len(self._errs) == 0:
@@ -250,7 +240,7 @@ class Scanner:
     def _save_symbol_table(self) -> None:
         """saves symbol table into a text file"""
 
-        save_dir = os.path.join(self._save_dir, 'symbol_table.txt')
+        save_dir = 'symbol_table.txt'
         with open(save_dir, 'w') as f:
             for ix, symbol in enumerate(self._symbol_table):
                 f.write(f"{ix + 1}.\t{symbol}\n")

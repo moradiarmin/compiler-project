@@ -1,13 +1,10 @@
-from abc import ABC, abstractclassmethod, abstractmethod
-import string
-from symtable import Symbol
-from typing import Dict, List, Optional
-from urllib.parse import _NetlocResultMixinStr
-
 FINAL_STATE = -1
 UNKNOWN = -2
+ascii_lowercase = 'abcdefghijklmnopqrstuvwxyz'
+ascii_uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+digits = '0123456789'
 
-class DFA(ABC):
+class DFA:
     """a general DFA class to define its policy"""
     
     state: int = 0
@@ -16,14 +13,11 @@ class DFA(ABC):
     lookahead: bool = False
     """whether lookahead occured or not"""
 
-    @classmethod
     def reset(cls):
         """reset DFA to initial state"""
         cls.state = 0
         cls.lookahead = False
 
-    @classmethod
-    @abstractmethod
     def move(cls, action: str) -> int:
         """move within DFA and return next state"""
 
@@ -78,7 +72,7 @@ class WhitespaceDFA(DFA):
 
 class SymbolDFA(DFA):
     chars = ["=", "*", ";", ":", ",", "[", "]", "(", ")", "+", "-", "<"]
-    gen_others = list(string.ascii_lowercase + string.ascii_uppercase + string.digits)
+    gen_others = list(ascii_lowercase + ascii_uppercase + digits)
     others = gen_others + CommentDFA.chars + WhitespaceDFA.whitespace_chars
 
     def move(cls, action: str):
