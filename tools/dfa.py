@@ -1,4 +1,5 @@
 from abc import ABC, abstractclassmethod, abstractmethod
+from symtable import Symbol
 from typing import Dict, List, Optional
 from urllib.parse import _NetlocResultMixinStr
 
@@ -26,45 +27,40 @@ class DFA(ABC):
         """move within DFA and return next state"""
 
 
-class NumberDFA(DFA):
+class CommentDFA(DFA):
+    chars = ["#", "/"]
 
-    def move(cls, action: str):
+    def move(cls, action: str): # what about lookahead and unknown and these stuff?
         state = cls.state
         next_state: int = UNKNOWN
 
-        if state == 0 and action.isdigit():
-            next_state = 1
-
-        elif state == 1:
-            if action.isdigit():
+        if state == 0:
+            if action == "#":
+                next_state = 5
+            elif action == "/":
                 next_state = 1
-            elif action == ".":
+        elif state == 1:
+            if action == "*":
                 next_state = 2
-            elif not action.isalpha() and not action in ["!", "$"]:
-                next_state = FINAL_STATE
             else:
                 next_state = UNKNOWN
-
-        elif state == 2 and action.isdigit():
-            next_state = 3
-        
-        elif state == 3:
-            if action.isdigit():
+        elif state == 2:
+            if action != "*":
+                next_state = 2
+            elif action == "*":
                 next_state = 3
-            elif not action.isalpha() and not action in ["!", "$"]:
+        elif state == 3:
+            if action != "/":
+                next_state = 2
+            elif action == "/":
+                next_state = FINAL_STATE # ?
+        elif state == 5:
+            if action == '\n' or action == None: # == None is EOF?
                 next_state = FINAL_STATE
             else:
-                next_state = UNKNOWN
-        
-        else:
-            next_state = UNKNOWN
-
-        if next_state == FINAL_STATE:
-            cls.lookahead = True
-
+                next_state = 5
         cls.state = next_state
         return next_state
-
 
 class WhitespaceDFA(DFA):
     whitespace_chars = [" ", "\r", "\t", "\n", "\v", "\f"]
@@ -115,58 +111,65 @@ class SymbolDFA(DFA):
         cls.state = next_state
         return next_state
 
-class IDDFA(DFA):
+class NumberDFA(DFA):
 
+    others = WhitespaceDFA.whitespace_chars + CommentDFA.chars + SymbolDFA.chars
+    
     def move(cls, action: str):
         state = cls.state
         next_state: int = UNKNOWN
 
+        if state == 0 and action.isdigit():
+            next_state = 1
+
+        elif state == 1:
+            if action.isdigit():
+                next_state = 1
+            elif action == ".":
+                next_state = 2
+            elif action not in cls.others: 
+                next_state = UNKNOWN
+            else: # if not action.isalpha() and not action in ["!", "$"]:
+                next_state = FINAL_STATE
+
+        elif state == 2 and action.isdigit():
+            next_state = 3
+        
+        elif state == 3:
+            if action.isdigit():
+                next_state = 3
+            elif action not in cls.others:  ## DUPP
+                next_state = UNKNOWN
+            else: # if not action.isalpha() and not action in ["!", "$"]:
+                next_state = FINAL_STATE
+        
+        else:
+            next_state = UNKNOWN
+
+        if next_state == FINAL_STATE:
+            cls.lookahead = True
+
+        cls.state = next_state
+        return next_state
+
+
+class IDDFA(DFA):
+    others = SymbolDFA.chars + WhitespaceDFA.whitespace_chars + CommentDFA.chars
+    def move(cls, action: str):
+        state = cls.state
+        next_state: int = UNKNOWN
+        
         if state == 0:
             if action.isalpha():
                 next_state = 1
         elif state == 1:
             if action.isalpha() or action.isdigit():
                 next_state = 1
-            elif action in ["!", "$"]:
+            elif action not in cls.others:
                 next_state = UNKNOWN
             else:
                 next_state = FINAL_STATE
                 cls.lookahead = True
                 
-        cls.state = next_state
-        return next_state
-
-class CommentDFA(DFA):
-    chars = ["#", "/"]
-
-    def move(cls, action: str): # what about lookahead and unknown and these stuff?
-        state = cls.state
-        next_state: int = UNKNOWN
-
-        if state == 0:
-            if action == "#":
-                next_state = 5
-            elif action == "/":
-                next_state = 1
-        elif state == 1:
-            if action == "*":
-                next_state = 2
-            else:
-                next_state = UNKNOWN
-        elif state == 2:
-            if action != "*":
-                next_state = 2
-            elif action == "*":
-                next_state = 3
-        elif state == 3:
-            if action != "/":
-                next_state = 2
-            elif action == "/":
-                next_state = FINAL_STATE # ?
-        elif state == 5:
-            if action == '\n' or action == None: # == None is EOF?
-                next_state = FINAL_STATE
-            else:
-                next_state = 5
         cls.state = next_state
         return next_state

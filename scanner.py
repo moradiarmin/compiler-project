@@ -137,6 +137,8 @@ class Scanner:
 
             if dfa.lookahead and dfa.state == FINAL_STATE:
                 self._p2 -= 1
+                if ch=="\n":
+                    self._current_line_num -= 1
 
             # process new token
             if dfa.state == FINAL_STATE and self._current_token_type not in \
