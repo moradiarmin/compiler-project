@@ -216,6 +216,7 @@ class Scanner:
 
             tokens = f"{line_num}.\t" + " ".join(tokens_in_line)
             f.write(tokens)
+            f.write("\n")
 
     
     def _save_errs(self) -> None:
@@ -243,6 +244,7 @@ class Scanner:
 
                 errs = f"{line_num}.\t" + " ".join(errs_in_line)
                 f.write(errs)
+                f.write("\n")
 
     
     def _save_symbol_table(self) -> None:
