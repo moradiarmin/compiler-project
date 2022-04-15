@@ -80,7 +80,6 @@ class WhitespaceDFA(DFA):
         return next_state
 
 class SymbolDFA(DFA):
-    chars = ["=", "*", ",", ";", ":","[", "]", "(", ")", "+", "-", "<"]
     chars = [";", ":", ",", "[", "]", "(", ")", "+", "-", "*", "=", "<"]
 
     def move(cls, action: str):
