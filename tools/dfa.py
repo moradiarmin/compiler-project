@@ -1,4 +1,5 @@
 from abc import ABC, abstractclassmethod, abstractmethod
+import string
 from symtable import Symbol
 from typing import Dict, List, Optional
 from urllib.parse import _NetlocResultMixinStr
@@ -77,6 +78,8 @@ class WhitespaceDFA(DFA):
 
 class SymbolDFA(DFA):
     chars = ["=", "*", ";", ":", ",", "[", "]", "(", ")", "+", "-", "<"]
+    gen_others = list(string.ascii_lowercase + string.ascii_uppercase + string.digits)
+    others = gen_others + CommentDFA.chars + WhitespaceDFA.whitespace_chars
 
     def move(cls, action: str):
         state = cls.state
@@ -93,20 +96,22 @@ class SymbolDFA(DFA):
                 next_state = UNKNOWN
 
         elif state == 1:
-            next_state = FINAL_STATE
-            if action != cls.chars[0]:
+            if action == cls.chars[0]:
+                next_state = FINAL_STATE
+            elif action in cls.others:
+                next_state = FINAL_STATE
                 cls.lookahead = True
+            else:
+                next_state = UNKNOWN
                     
         elif state == 2:
             if action == cls.chars[1]:
                 next_state = FINAL_STATE
+            elif action in cls.others:
+                next_state = FINAL_STATE
+                cls.lookahead = True
             else:
-                # i.e. '*/' -> unmatched comment
-                if action in ["/", "!", "$"]:
-                    next_state = UNKNOWN
-                else:
-                    next_state = FINAL_STATE
-                    cls.lookahead = True
+                next_state = UNKNOWN
 
         cls.state = next_state
         return next_state
