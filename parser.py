@@ -1,6 +1,7 @@
+from symtable import Symbol
 from typing import Callable, List, Dict, Literal, Optional, Tuple, Union
 
-from .scanner import Token
+from scanner import Token, TokenType
 
 
 NULL = 'null'
@@ -31,9 +32,9 @@ class Parser:
 
         self._parse_grammar_file(grammar_addr)
 
-        self._call_scanner: Callable[..., Token] = call_scanner
+        self._call_scanner: Callable[..., Tuple[Token, TokenType]] = call_scanner
         
-        self.stack: List[str] = [self._non_terminals[0]] + ['$']
+        self.stack: List[str] = ['Program', '$']
         """ parser stack """
         
         self._errs: List[str] = list()
@@ -47,10 +48,10 @@ class Parser:
             'Compound_stmt': {'def': 11, 'if': 12, 'while': 13},
             'Assignment_Call': {'ID': 14},
             'B': {'=': 15, '[': 16, '(': 17},
-            'C': {'ID': 18, 'NUM': 18, '[': 19},
+            'C': {'ID': 18, 'NUMBER': 18, '[': 19},
             'List_Rest': {',': 20, ']': 21},
             'Return_stmt': {'return': 22},
-            'Return_Value': {'ID': 23, 'NUM': 23, ';': 24},
+            'Return_Value': {'ID': 23, 'NUMBER': 23, ';': 24},
             'Global_stmt': {'global': 25},
             'Function_def': {'def': 26},
             'Params': {'ID': 27, ')': 28},
@@ -58,18 +59,18 @@ class Parser:
             'If_stmt': {'if': 31},
             'Else_block': {'else': 32, ';': 33},
             'Iteration_stmt': {'while': 34},
-            'Relational_Expression': {'ID': 35, 'NUM': 35},
-            'Relop': {'=': 36, '<': 37},
-            'Expression': {'ID': 38, 'NUM': 38},
+            'Relational_Expression': {'ID': 35, 'NUMBER': 35},
+            'Relop': {'==': 36, '<': 37},
+            'Expression': {'ID': 38, 'NUMBER': 38},
             'Expression_Prime': {'+': 39, '-': 40, ';': 41, ']': 41, ')': 41, ',': 41, ':': 41, '=': 41, '<': 41},
-            'Term': {'ID': 42, 'NUM': 42},
+            'Term': {'ID': 42, 'NUMBER': 42},
             'Term_Prime': {'*': 43, ';': 44, ']': 44, ')': 44, ',': 44, ':': 44, '=': 44, '<': 44, '+': 44, '-': 44},
-            'Factor': {'ID': 45, 'NUM': 45},
-            'Power': {'*': 46, ';': 47, '[': 47, '(': 47, ']': 47, ')': 47, ',': 47, ':': 47, '=': 47, '<': 47, '+': 47, '-': 47, '*': 47},
+            'Factor': {'ID': 45, 'NUMBER': 45},
+            'Power': {'**': 46, ';': 47, '[': 47, '(': 47, ']': 47, ')': 47, ',': 47, ':': 47, '=': 47, '<': 47, '+': 47, '-': 47, '*': 47},
             'Primary': {'[': 48, '(': 49, ';': 50, ']': 50, ')': 50, ',': 50, ':': 50, '=': 50, '<': 50, '+': 50, '-': 50, '*': 50},
-            'Arguments': {'ID': 51, 'NUM': 51, ')': 52},
+            'Arguments': {'ID': 51, 'NUMBER': 51, ')': 52},
             'Arguments_Prime': {',': 53, ')': 54},
-            'Atom': {'ID': 55, 'NUM': 56},
+            'Atom': {'ID': 55, 'NUMBER': 56},
         }
         """ maps a non-terminal and terminal to the rule number or 'SYNC' """
 
@@ -93,17 +94,17 @@ class Parser:
             'Else_block': [';'],
             'Iteration_stmt': [';'],
             'Relational_Expression': [')', ':'],
-            'Relop': ['ID', 'NUM'],
-            'Expression': [';', ')', ']', ',', ':', '=', '<'],
-            'Expression_Prime': [';', ')', ']', ',', ':', '=', '<'],
-            'Term': [';', ')', ']', ',', ':', '=', '<', '+', '-'],
-            'Term_Prime': [';', ')', ']', ',', ':', '=', '<', '+', '-'],
-            'Factor': [';', ')', ']', ',', ':', '=', '<', '+', '-', '*'],
-            'Power': [';', ')', ']', ',', ':', '=', '<', '+', '-', '*'],
-            'Primary': [';', ')', ']', ',', ':', '=', '<', '+', '-', '*'],
+            'Relop': ['ID', 'NUMBER'],
+            'Expression': [';', ')', ']', ',', ':', '==', '<'],
+            'Expression_Prime': [';', ')', ']', ',', ':', '==', '<'],
+            'Term': [';', ')', ']', ',', ':', '==', '<', '+', '-'],
+            'Term_Prime': [';', ')', ']', ',', ':', '==', '<', '+', '-'],
+            'Factor': [';', ')', ']', ',', ':', '==', '<', '+', '-', '*'],
+            'Power': [';', ')', ']', ',', ':', '==', '<', '+', '-', '*'],
+            'Primary': [';', ')', ']', ',', ':', '==', '<', '+', '-', '*'],
             'Arguments': [')'],
             'Arguments_Prime': [')'],
-            'Atom': [';', '[', '(', ')', ']', ',', ':', '=', '<', '+', '-', '*'],
+            'Atom': [';', '[', '(', ')', ']', ',', ':', '==', '<', '+', '-', '*', '**'],
         }
         """ maps a non-terminal to its list of follow """
 
@@ -135,36 +136,42 @@ class Parser:
     def parse(self): 
         # TODO: creating parse tree
         
-        if not self._parsing_started:
-            token: Token = self._call_scanner()
-            self._parsing_started = True
+        while self.stack: # I'm not sure
+        
+            if not self._parsing_started:
+                token, token_type = self._call_scanner()
+                self._parsing_started = True
 
-        line_no = token.line
-        X = self.stack[0]
+            line_no = token.line
+            X = self.stack[0]
 
-        # X is terminal
-        if X in self._terminals:
-            self.stack.pop(0)
-            if X == token:
-                token = self._call_scanner()
-            else:
-                self._errs.append(f'#{line_no}: syntax error; missing {token}')
+            # X is terminal
 
-        # X is non-terminal
-        elif X in self._non_terminals:
-            try:
-                rule_no = self._parse_table[X, token]
-            except:
-                rule_no = SYNC if token in self._follow[X] else NULL
-            
-            if isinstance(rule_no, int):
+            if X in self._terminals:
                 self.stack.pop(0)
-                self.stack = self._rules[rule_no] + self.stack
-            
-            elif rule_no == SYNC:
-                self.stack.pop(0)
-                self._errs(f'#{line_no}: syntax error; missing {exp}')
-            
-            else:
-                self._errs(f'#{line_no}: syntax error; illegal {token}')
-                token = self._call_scanner()
+                if X == token or X == token_type:
+                    token, token_type = self._call_scanner()
+                else:
+                    self._errs.append(f'#{line_no}: syntax error; missing {token.lexeme}')
+
+            # X is non-terminal
+            elif X in self._non_terminals:
+                T = token.lexeme if token_type in [TokenType.SYMBOL, TokenType.KEYWORD] else token_type
+                try:
+                    rule_no = self._parse_table[X][T]
+                except:
+                    rule_no = SYNC if T in self._follow[X] else NULL
+
+                if isinstance(rule_no, int):
+                    self.stack.pop(0)
+                    self.stack = self._rules[rule_no] + self.stack
+                
+                elif rule_no == SYNC:
+                    self.stack.pop(0)
+                    self._errs.append(f'#{line_no}: syntax error; missing {X}')
+                
+                else:
+                    self._errs.append(f'#{line_no}: syntax error; illegal {token}')
+                    token, token_type = self._call_scanner()
+            print(self.stack, token.lexeme, token.line)
+            input()

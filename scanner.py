@@ -1,3 +1,5 @@
+from typing import List, Optional, Tuple
+
 from tools.dfa import *
 
 
@@ -259,3 +261,14 @@ class Scanner:
             self._get_next_token()
 
         self._save()
+
+    
+    def pass_next_token_to_parser(self) -> Tuple[Token, TokenType]:
+        """ passes the next next token to parser (EXCEPT for comments and whitespaces) """
+
+        while True:
+            token = self._get_next_token()
+            if token is None or self._current_token_type in [TokenType.COMMENT, TokenType.WHITESPACE]:
+                continue
+
+            return token, self._current_token_type
