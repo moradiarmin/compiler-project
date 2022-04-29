@@ -17,7 +17,7 @@ class DFA:
         """reset DFA to initial state"""
         cls.state = 0
         cls.lookahead = False
-
+    
     def move(cls, action: str) -> int:
         """move within DFA and return next state"""
 
