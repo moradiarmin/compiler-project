@@ -1,9 +1,10 @@
 from symtable import Symbol
 from typing import Callable, List, Dict, Literal, Optional, Tuple, Union
 
-from scanner import Token, TokenType
 
+from scanner import EOF, Token, TokenType
 
+EPSILON = 'EPSILON'
 NULL = 'null'
 SYNC = 'sync'
 
@@ -48,10 +49,10 @@ class Parser:
             'Compound_stmt': {'def': 11, 'if': 12, 'while': 13},
             'Assignment_Call': {'ID': 14},
             'B': {'=': 15, '[': 16, '(': 17},
-            'C': {'ID': 18, 'NUMBER': 18, '[': 19},
+            'C': {'ID': 18, 'NUM': 18, '[': 19},
             'List_Rest': {',': 20, ']': 21},
             'Return_stmt': {'return': 22},
-            'Return_Value': {'ID': 23, 'NUMBER': 23, ';': 24},
+            'Return_Value': {'ID': 23, 'NUM': 23, ';': 24},
             'Global_stmt': {'global': 25},
             'Function_def': {'def': 26},
             'Params': {'ID': 27, ')': 28},
@@ -59,18 +60,18 @@ class Parser:
             'If_stmt': {'if': 31},
             'Else_block': {'else': 32, ';': 33},
             'Iteration_stmt': {'while': 34},
-            'Relational_Expression': {'ID': 35, 'NUMBER': 35},
+            'Relational_Expression': {'ID': 35, 'NUM': 35},
             'Relop': {'==': 36, '<': 37},
-            'Expression': {'ID': 38, 'NUMBER': 38},
+            'Expression': {'ID': 38, 'NUM': 38},
             'Expression_Prime': {'+': 39, '-': 40, ';': 41, ']': 41, ')': 41, ',': 41, ':': 41, '=': 41, '<': 41},
-            'Term': {'ID': 42, 'NUMBER': 42},
+            'Term': {'ID': 42, 'NUM': 42},
             'Term_Prime': {'*': 43, ';': 44, ']': 44, ')': 44, ',': 44, ':': 44, '=': 44, '<': 44, '+': 44, '-': 44},
-            'Factor': {'ID': 45, 'NUMBER': 45},
+            'Factor': {'ID': 45, 'NUM': 45},
             'Power': {'**': 46, ';': 47, '[': 47, '(': 47, ']': 47, ')': 47, ',': 47, ':': 47, '=': 47, '<': 47, '+': 47, '-': 47, '*': 47},
             'Primary': {'[': 48, '(': 49, ';': 50, ']': 50, ')': 50, ',': 50, ':': 50, '=': 50, '<': 50, '+': 50, '-': 50, '*': 50},
-            'Arguments': {'ID': 51, 'NUMBER': 51, ')': 52},
+            'Arguments': {'ID': 51, 'NUM': 51, ')': 52},
             'Arguments_Prime': {',': 53, ')': 54},
-            'Atom': {'ID': 55, 'NUMBER': 56},
+            'Atom': {'ID': 55, 'NUM': 56},
         }
         """ maps a non-terminal and terminal to the rule number or 'SYNC' """
 
@@ -94,7 +95,7 @@ class Parser:
             'Else_block': [';'],
             'Iteration_stmt': [';'],
             'Relational_Expression': [')', ':'],
-            'Relop': ['ID', 'NUMBER'],
+            'Relop': ['ID', 'NUM'],
             'Expression': [';', ')', ']', ',', ':', '==', '<'],
             'Expression_Prime': [';', ')', ']', ',', ':', '==', '<'],
             'Term': [';', ')', ']', ',', ':', '==', '<', '+', '-'],
@@ -136,8 +137,8 @@ class Parser:
     def parse(self): 
         # TODO: creating parse tree
         
-        while self.stack: # I'm not sure
-        
+        while self.stack[0] != EOF:
+
             if not self._parsing_started:
                 token, token_type = self._call_scanner()
                 self._parsing_started = True
@@ -149,14 +150,14 @@ class Parser:
 
             if X in self._terminals:
                 self.stack.pop(0)
-                if X == token or X == token_type:
+                if X == token.lexeme or X == token_type or X == EPSILON:
                     token, token_type = self._call_scanner()
                 else:
                     self._errs.append(f'#{line_no}: syntax error; missing {token.lexeme}')
-
+                
             # X is non-terminal
             elif X in self._non_terminals:
-                T = token.lexeme if token_type in [TokenType.SYMBOL, TokenType.KEYWORD] else token_type
+                T = token_type if token_type in [TokenType.ID, TokenType.NUMBER] else token.lexeme
                 try:
                     rule_no = self._parse_table[X][T]
                 except:
@@ -171,7 +172,6 @@ class Parser:
                     self._errs.append(f'#{line_no}: syntax error; missing {X}')
                 
                 else:
-                    self._errs.append(f'#{line_no}: syntax error; illegal {token}')
+                    self._errs.append(f'#{line_no}: syntax error; illegal {token.lexeme}')
                     token, token_type = self._call_scanner()
-            print(self.stack, token.lexeme, token.line)
-            input()
+        

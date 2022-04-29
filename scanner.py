@@ -3,11 +3,13 @@ from typing import List, Optional, Tuple
 from tools.dfa import *
 
 
+EOF = "$"
 class TokenType:
-    NUMBER = "NUMBER"
+    NUMBER = "NUM"
     ID = "ID"
     KEYWORD = "KEYWORD"
     SYMBOL = "SYMBOL"
+    EOF = "EOF"
     COMMENT = "COMMENT" # seems ugly :)
     WHITESPACE = "WHITESPACE" # seems ugly :)
 
@@ -266,9 +268,13 @@ class Scanner:
     def pass_next_token_to_parser(self) -> Tuple[Token, TokenType]:
         """ passes the next next token to parser (EXCEPT for comments and whitespaces) """
 
-        while True:
+        while self._p1 < len(self._inp_file):
             token = self._get_next_token()
             if token is None or self._current_token_type in [TokenType.COMMENT, TokenType.WHITESPACE]:
                 continue
-
+            
             return token, self._current_token_type
+        
+        self._current_token_type = TokenType.EOF
+        token_eof = Token(self._current_line_num, EOF, self._current_token_type)
+        return token_eof, self._current_token_type
