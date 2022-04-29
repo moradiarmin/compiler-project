@@ -31,9 +31,6 @@ class Parser:
 
         self._parse_grammar_file(grammar_addr)
 
-        self._parse_table: Dict[Tuple[str, str], Union[int, SYNC]] = dict()
-        """ maps a non-terminal and terminal to the rule number or 'SYNC' """
-
         self._call_scanner: Callable[..., Token] = call_scanner
         
         self.stack: List[str] = [self._non_terminals[0]] + ['$']
@@ -41,6 +38,74 @@ class Parser:
         
         self._errs: List[str] = list()
         """ all errors occured during parsing """
+
+        self._parse_table: Dict[Tuple[str, str], int] = {
+            'Program': {'break': 1, 'continue': 1, 'ID': 1, 'return': 1, 'global': 1, 'def': 1, 'if': 1, 'while': 1, '$': 1},
+            'Statements': {'break': 2, 'continue': 2, 'ID': 2, 'return': 2, 'global': 2, 'def': 2, 'if': 2, 'while': 2, 'if': 2, ';': 3, 'else': 3, '$': 3},
+            'Statement': {'def': 4, 'if': 4, 'while': 4, 'break': 5, 'continue': 5, 'ID': 5, 'return': 5, 'global': 5},
+            'Simple_stmt': {'ID': 6, 'return': 7, 'global': 8, 'break': 9, 'continue': 10},
+            'Compound_stmt': {'def': 11, 'if': 12, 'while': 13},
+            'Assignment_Call': {'ID': 14},
+            'B': {'=': 15, '[': 16, '(': 17},
+            'C': {'ID': 18, 'NUM': 18, '[': 19},
+            'List_Rest': {',': 20, ']': 21},
+            'Return_stmt': {'return': 22},
+            'Return_Value': {'ID': 23, 'NUM': 23, ';': 24},
+            'Global_stmt': {'global': 25},
+            'Function_def': {'def': 26},
+            'Params': {'ID': 27, ')': 28},
+            'Params_Prime': {',': 29, ')': 30},
+            'If_stmt': {'if': 31},
+            'Else_block': {'else': 32, ';': 33},
+            'Iteration_stmt': {'while': 34},
+            'Relational_Expression': {'ID': 35, 'NUM': 35},
+            'Relop': {'=': 36, '<': 37},
+            'Expression': {'ID': 38, 'NUM': 38},
+            'Expression_Prime': {'+': 39, '-': 40, ';': 41, ']': 41, ')': 41, ',': 41, ':': 41, '=': 41, '<': 41},
+            'Term': {'ID': 42, 'NUM': 42},
+            'Term_Prime': {'*': 43, ';': 44, ']': 44, ')': 44, ',': 44, ':': 44, '=': 44, '<': 44, '+': 44, '-': 44},
+            'Factor': {'ID': 45, 'NUM': 45},
+            'Power': {'*': 46, ';': 47, '[': 47, '(': 47, ']': 47, ')': 47, ',': 47, ':': 47, '=': 47, '<': 47, '+': 47, '-': 47, '*': 47},
+            'Primary': {'[': 48, '(': 49, ';': 50, ']': 50, ')': 50, ',': 50, ':': 50, '=': 50, '<': 50, '+': 50, '-': 50, '*': 50},
+            'Arguments': {'ID': 51, 'NUM': 51, ')': 52},
+            'Arguments_Prime': {',': 53, ')': 54},
+            'Atom': {'ID': 55, 'NUM': 56},
+        }
+        """ maps a non-terminal and terminal to the rule number or 'SYNC' """
+
+        self._follow: Dict[str, List[str]] = {
+            'Program': ['$'],
+            'Statements': [';', 'else', '$'],
+            'Statement': [';'],
+            'Simple_stmt': [';'],
+            'Compound_stmt': [';'],
+            'Assignment_Call': [';'],
+            'B': [';'],
+            'C': [';'],
+            'List_Rest': [']'],
+            'Return_stmt': [';'],
+            'Return_Value': [';'],
+            'Global_stmt': [';'],
+            'Function_def': [';'],
+            'Params': [')'],
+            'Params_Prime': [')'],
+            'If_stmt': [']'],
+            'Else_block': [';'],
+            'Iteration_stmt': [';'],
+            'Relational_Expression': [')', ':'],
+            'Relop': ['ID', 'NUM'],
+            'Expression': [';', ')', ']', ',', ':', '=', '<'],
+            'Expression_Prime': [';', ')', ']', ',', ':', '=', '<'],
+            'Term': [';', ')', ']', ',', ':', '=', '<', '+', '-'],
+            'Term_Prime': [';', ')', ']', ',', ':', '=', '<', '+', '-'],
+            'Factor': [';', ')', ']', ',', ':', '=', '<', '+', '-', '*'],
+            'Power': [';', ')', ']', ',', ':', '=', '<', '+', '-', '*'],
+            'Primary': [';', ')', ']', ',', ':', '=', '<', '+', '-', '*'],
+            'Arguments': [')'],
+            'Arguments_Prime': [')'],
+            'Atom': [';', '[', '(', ')', ']', ',', ':', '=', '<', '+', '-', '*'],
+        }
+        """ maps a non-terminal to its list of follow """
 
 
     def _parse_grammar_file(self,
@@ -51,7 +116,7 @@ class Parser:
             grammar_addr (str): directory of text file containing all rules of the language
         """
         
-        all_exps = list()
+        T_NT = list()
         with open(grammar_addr, 'r') as f:
 
             for rule in f.read().split("\n"):
@@ -60,16 +125,15 @@ class Parser:
                 
                 rhs_exps = rhs.split()
                 self._rules.append(rhs_exps)
-                all_exps += [lhs_non_terminal] + rhs_exps
+                T_NT += [lhs_non_terminal] + rhs_exps
             
-            all_exps = list(set(all_exps))
+            T_NT = list(set(T_NT))
             self._non_terminals = list(set(self._non_terminals))
-            self._terminals = [x for x in all_exps if x not in self._non_terminals]
-        
+            self._terminals = [x for x in T_NT if x not in self._non_terminals]   
+
 
     def parse(self): 
         # TODO: creating parse tree
-        # TODO: creating parse table
         
         if not self._parsing_started:
             token: Token = self._call_scanner()
@@ -91,7 +155,7 @@ class Parser:
             try:
                 rule_no = self._parse_table[X, token]
             except:
-                rule_no = NULL
+                rule_no = SYNC if token in self._follow[X] else NULL
             
             if isinstance(rule_no, int):
                 self.stack.pop(0)
