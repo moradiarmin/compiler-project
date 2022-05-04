@@ -181,7 +181,7 @@ class Scanner:
         self._p2 += 1
         self._p1 = self._p2
 
-        return new_token if new_token is not None else new_err
+        return new_token
 
     
     def _save_tokens(self) -> None:
