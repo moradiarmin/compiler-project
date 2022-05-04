@@ -63,12 +63,12 @@ class Parser:
             'Relational_Expression': {'ID': 35, 'NUM': 35},
             'Relop': {'==': 36, '<': 37},
             'Expression': {'ID': 38, 'NUM': 38},
-            'Expression_Prime': {'+': 39, '-': 40, ';': 41, ']': 41, ')': 41, ',': 41, ':': 41, '=': 41, '<': 41},
+            'Expression_Prime': {'+': 39, '-': 40, ';': 41, ']': 41, ')': 41, ',': 41, ':': 41, '==': 41, '<': 41},
             'Term': {'ID': 42, 'NUM': 42},
-            'Term_Prime': {'*': 43, ';': 44, ']': 44, ')': 44, ',': 44, ':': 44, '=': 44, '<': 44, '+': 44, '-': 44},
+            'Term_Prime': {'*': 43, ';': 44, ']': 44, ')': 44, ',': 44, ':': 44, '==': 44, '<': 44, '+': 44, '-': 44},
             'Factor': {'ID': 45, 'NUM': 45},
-            'Power': {'**': 46, ';': 47, '[': 47, '(': 47, ']': 47, ')': 47, ',': 47, ':': 47, '=': 47, '<': 47, '+': 47, '-': 47, '*': 47},
-            'Primary': {'[': 48, '(': 49, ';': 50, ']': 50, ')': 50, ',': 50, ':': 50, '=': 50, '<': 50, '+': 50, '-': 50, '*': 50},
+            'Power': {'**': 46, ';': 47, '[': 47, '(': 47, ']': 47, ')': 47, ',': 47, ':': 47, '==': 47, '<': 47, '+': 47, '-': 47, '*': 47},
+            'Primary': {'[': 48, '(': 49, ';': 50, ']': 50, ')': 50, ',': 50, ':': 50, '==': 50, '<': 50, '+': 50, '-': 50, '*': 50},
             'Arguments': {'ID': 51, 'NUM': 51, ')': 52},
             'Arguments_Prime': {',': 53, ')': 54},
             'Atom': {'ID': 55, 'NUM': 56},
@@ -145,7 +145,7 @@ class Parser:
 
             line_no = token.line
             X = self.stack[0]
-
+            len_err = len(self._errs)
             # X is terminal
 
             if X in self._terminals:
@@ -158,7 +158,7 @@ class Parser:
                     token, token_type = self._call_scanner()
                 
                 else:
-                    self._errs.append(f'#{line_no}: syntax error; missing {token.lexeme}')
+                    self._errs.append(f'#{line_no}: syntax error; missing {X}')
                 
             # X is non-terminal
             elif X in self._non_terminals:
@@ -177,6 +177,9 @@ class Parser:
                     self._errs.append(f'#{line_no}: syntax error; missing {X}')
                 
                 else:
-                    self._errs.append(f'#{line_no}: syntax error; illegal {token.lexeme}')
+                    if token.lexeme == EOF:
+                        self._errs.append(f'#{line_no}: syntax error; unexpected token EOF') 
+                        break                   
+                    else:
+                        self._errs.append(f'#{line_no}: syntax error; illegal {T}')
                     token, token_type = self._call_scanner()
-        
