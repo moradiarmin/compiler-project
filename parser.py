@@ -150,8 +150,13 @@ class Parser:
 
             if X in self._terminals:
                 self.stack.pop(0)
-                if X == token.lexeme or X == token_type or X == EPSILON:
+                
+                if X == EPSILON:
+                    continue
+                
+                if X == token.lexeme or X == token_type:
                     token, token_type = self._call_scanner()
+                
                 else:
                     self._errs.append(f'#{line_no}: syntax error; missing {token.lexeme}')
                 
