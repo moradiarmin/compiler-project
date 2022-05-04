@@ -145,7 +145,6 @@ class Parser:
 
             line_no = token.line
             X = self.stack[0]
-            len_err = len(self._errs)
             # X is terminal
 
             if X in self._terminals:
