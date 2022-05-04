@@ -2,10 +2,9 @@
 # Alireza Dizaji 96107545
 
 from scanner import Scanner
-from .parser import Parser
+from parser import Parser
 
 my_scanner = Scanner(f"./input.txt", f".")
-my_parser = Parser(my_scanner._get_next_token)
+my_parser = Parser('grammar.txt', my_scanner.pass_next_token_to_parser)
 
-while not my_parser.stack(): # I'm not sure
-    my_parser.parse()
+my_parser.parse()
