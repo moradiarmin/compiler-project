@@ -2,14 +2,16 @@ from symtable import Symbol
 from typing import Callable, List, Dict, Literal, Optional, Tuple, Union
 
 from anytree import Node, RenderTree
+
 from scanner import EOF, Token, TokenType
+from tools.dfa import *
 
 EPSILON = 'EPSILON'
 NULL = 'null'
 SYNC = 'sync'
 
 class Parser:
-    """ parser module
+    """ parser module using LL(1) algorithm
 
     Args:
         grammar_addr (str): directory of text file containing all rules of the language
@@ -34,14 +36,14 @@ class Parser:
         self._parse_grammar_file(grammar_addr)
 
         self._call_scanner: Callable[..., Tuple[Token, TokenType]] = call_scanner
-        
-        self.stack: List[str] = ['Program', '$']
+
+        self._root = Node('Program')
+
+        self.stack: List[Node] = [self._root, Node('$', parent=self._root)]
         """ parser stack """
         
         self._errs: List[str] = list()
         """ all errors occured during parsing """
-
-        self.parse_tree: Node
 
         self._parse_table: Dict[Tuple[str, str], int] = {
             'Program': {'break': 1, 'continue': 1, 'ID': 1, 'return': 1, 'global': 1, 'def': 1, 'if': 1, 'while': 1, '$': 1},
@@ -137,29 +139,33 @@ class Parser:
 
 
     def parse(self): 
-        # TODO: creating parse tree
-        tree_depth = 0
-        while self.stack[0] != EOF:
+
+        root: Node = self.stack[0]
+
+        while self.stack[0].name != EOF:
 
             if not self._parsing_started:
                 token, token_type = self._call_scanner()
                 self._parsing_started = True
 
             line_no = token.line
-            X = self.stack[0]
-            # X is terminal
+            X = self.stack[0].name
 
+            # X is terminal
             if X in self._terminals:
-                self.stack.pop(0)
+                node = self.stack.pop(0)
                 
                 if X == EPSILON:
+                    node.name = node.name.lower()
                     continue
                 
                 if X == token.lexeme or X == token_type:
+                    node.name = token.all_in_one
                     token, token_type = self._call_scanner()
                 
                 else:
-                    self._errs.append(f'#{line_no}: syntax error; missing {X}')
+                    node.parent = None
+                    self._errs.append(f'#{line_no} : syntax error, missing {X}')
                 
             # X is non-terminal
             elif X in self._non_terminals:
@@ -171,36 +177,68 @@ class Parser:
 
                 if isinstance(rule_no, int):
                     lhs = self.stack.pop(0)
-                    rhss = self._rules[rule_no]
-                    first_rhs = rhss[0]
+                    rhs = self._rules[rule_no]
 
-                    if lhs == 'Program':
-                        root = Node(lhs, parent=None)
-                        for rhs in rhss:
-                            child = Node(rhs, parent=root)
-                            first_child = first_rhs
-                    else:
-                        for kid in root.children:
-                            if lhs == kid.name:
-                                lhs_node = kid
-                        for rhs in rhss:
-                            child = Node(rhs, parent=kid)
-                            first_child = first_rhs
-
-                    self.stack = self._rules[rule_no] + self.stack          
+                    self.stack = [Node(r, parent=lhs) for r in rhs] + self.stack          
 
                 elif rule_no == SYNC:
-                    self.stack.pop(0)
-                    self._errs.append(f'#{line_no}: syntax error; missing {X}')
+                    # drop from parse tree
+                    node = self.stack.pop(0)
+                    node.parent = None
+
+                    self._errs.append(f'#{line_no} : syntax error, missing {X}')
                 
                 else:
-<<<<<<< HEAD
-                    self._errs.append(f'#{line_no}: syntax error; illegal {token.lexeme}')
-=======
                     if token.lexeme == EOF:
-                        self._errs.append(f'#{line_no}: syntax error; unexpected token EOF') 
+                        self._errs.append(f'#{line_no} : syntax error, Unexpected EOF') 
                         break                   
                     else:
-                        self._errs.append(f'#{line_no}: syntax error; illegal {T}')
->>>>>>> 809425d185887cde36da96ff44c11ad9c3ccd8c0
+                        self._errs.append(f'#{line_no} : syntax error, illegal {T}')
                     token, token_type = self._call_scanner()
+
+        # Unexpected EOF occured then remove all nodes remained in stack tree
+        if len(self.stack) > 1:
+            
+            # remove all nodes remained in stack from tree
+            while self.stack:
+                node = self.stack.pop(0)
+                node.parent = None
+
+        # O.W. reorder eof sign in parser tree to the right most side            
+        else:
+            eof_node = self.stack.pop(0)
+            eof_node.parent = None
+            Node("$", parent=root)
+    
+        self._save()
+
+
+    def _save_errs(self):
+        """ saves occured errors within a text file """
+
+        with open('syntax_errors.txt', 'w') as f:
+            if not self._errs:
+                f.write('There is no syntax error.')
+            else:
+                for err in self._errs:
+                    f.write(err)
+                    f.write('\n')
+
+
+    def _save_parser_tree(self):
+        """ saves the parser tree within a text file """
+
+        with open('parse_tree.txt', 'w') as f:
+            for pre, _, node in RenderTree(self._root):
+                name = node.name
+                if name in self._terminals:
+                    if name in SymbolDFA.chars:
+                        name = f"()"
+                f.write(f"{pre}{node.name}\n")
+    
+
+    def _save(self):
+        """ save parse tree and errors """
+
+        self._save_errs()
+        self._save_parser_tree()

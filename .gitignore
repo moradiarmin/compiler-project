@@ -5,3 +5,6 @@ __pycache__/
 .DS_Store
 file_checker.py
 input.txt
+parse_tree.txt
+syntax_errors.txt
+*.zip
