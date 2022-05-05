@@ -1,10 +1,8 @@
-from symtable import Symbol
-from typing import Callable, List, Dict, Literal, Optional, Tuple, Union
+from typing import Callable, List, Dict, Tuple
 
 from anytree import Node, RenderTree
 
 from scanner import EOF, Token, TokenType
-from tools.dfa import *
 
 EPSILON = 'EPSILON'
 NULL = 'null'
@@ -230,10 +228,6 @@ class Parser:
 
         with open('parse_tree.txt', 'w') as f:
             for pre, _, node in RenderTree(self._root):
-                name = node.name
-                if name in self._terminals:
-                    if name in SymbolDFA.chars:
-                        name = f"()"
                 f.write(f"{pre}{node.name}\n")
     
 
