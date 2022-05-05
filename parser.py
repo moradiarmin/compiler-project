@@ -1,7 +1,7 @@
 from symtable import Symbol
 from typing import Callable, List, Dict, Literal, Optional, Tuple, Union
 
-
+from anytree import Node, RenderTree
 from scanner import EOF, Token, TokenType
 
 EPSILON = 'EPSILON'
@@ -40,6 +40,8 @@ class Parser:
         
         self._errs: List[str] = list()
         """ all errors occured during parsing """
+
+        self.parse_tree: Node
 
         self._parse_table: Dict[Tuple[str, str], int] = {
             'Program': {'break': 1, 'continue': 1, 'ID': 1, 'return': 1, 'global': 1, 'def': 1, 'if': 1, 'while': 1, '$': 1},
@@ -136,7 +138,7 @@ class Parser:
 
     def parse(self): 
         # TODO: creating parse tree
-        
+        tree_depth = 0
         while self.stack[0] != EOF:
 
             if not self._parsing_started:
@@ -164,9 +166,25 @@ class Parser:
                     rule_no = SYNC if T in self._follow[X] else NULL
 
                 if isinstance(rule_no, int):
-                    self.stack.pop(0)
-                    self.stack = self._rules[rule_no] + self.stack
-                
+                    lhs = self.stack.pop(0)
+                    rhss = self._rules[rule_no]
+                    first_rhs = rhss[0]
+
+                    if lhs == 'Program':
+                        root = Node(lhs, parent=None)
+                        for rhs in rhss:
+                            child = Node(rhs, parent=root)
+                            first_child = first_rhs
+                    else:
+                        for kid in root.children:
+                            if lhs == kid.name:
+                                lhs_node = kid
+                        for rhs in rhss:
+                            child = Node(rhs, parent=kid)
+                            first_child = first_rhs
+
+                    self.stack = self._rules[rule_no] + self.stack          
+
                 elif rule_no == SYNC:
                     self.stack.pop(0)
                     self._errs.append(f'#{line_no}: syntax error; missing {X}')
@@ -174,4 +192,3 @@ class Parser:
                 else:
                     self._errs.append(f'#{line_no}: syntax error; illegal {token.lexeme}')
                     token, token_type = self._call_scanner()
-        
