@@ -1,43 +1,12 @@
 from typing import List, Optional, Tuple
+from enums.error import ScannerErrorType as SEType
 
+from enums.token_type import TokenType
+from modules.error import ScannerError as SError
+from modules.token import Token
+from modules.symbol_table import Attribute, Row, SymbolTable
 from tools.dfa import *
-
-
-EOF = "$"
-class TokenType:
-    NUMBER = "NUM"
-    ID = "ID"
-    KEYWORD = "KEYWORD"
-    SYMBOL = "SYMBOL"
-    EOF = "EOF"
-    COMMENT = "COMMENT" # seems ugly :)
-    WHITESPACE = "WHITESPACE" # seems ugly :)
-
-class Token:
-    def __init__(self, line: int, lexeme: str, type: TokenType) -> None:
-        self.line: int = line
-        self.lexeme: str = lexeme
-        self.type: TokenType = type
-
-    @property
-    def all_in_one(self):
-        return f"({self.type}, {self.lexeme})"
-
-class ErrorType:
-    INVALID_INPUT = "Invalid input"
-    INVALID_NUMBER = "Invalid number"
-    UNCLOSED_COMMENT = "Unclosed comment"
-    UNMATCHED_COMMENT = "Unmatched comment"
-
-class Error:
-    def __init__(self, line: int, lexeme: str, type: ErrorType) -> None:
-        self.line: int = line
-        self.lexeme: str = lexeme
-        self.type: ErrorType = type
-
-    @property
-    def all_in_one(self):
-        return f"({self.lexeme}, {self.type})"
+from utils.constants import EOF
 
 class Scanner:
     """scanner module
@@ -58,9 +27,7 @@ class Scanner:
         self._multiline_comment_start_line = None
 
         self._tokens: List[Token] = list()
-        self._keywords = ["break", "continue", "def", "else","if", "return", "while"]
-        self._symbol_table: List[Token] = [*self._keywords]
-        self._errs: List[Error] = list()
+        self._errs: List[SError] = list()
 
 
     def _select_dfa(self):
@@ -95,17 +62,17 @@ class Scanner:
         return None
 
 
-    def _get_err_type(self, lexeme: str) -> ErrorType:
+    def _get_err_type(self, lexeme: str) -> SEType:
         """specifies type of the leximal error"""
 
         if self._current_token_type == TokenType.NUMBER:
-            return ErrorType.INVALID_NUMBER        
+            return SEType.INVALID_NUMBER        
         elif self._current_token_type == TokenType.COMMENT:
-            return ErrorType.UNCLOSED_COMMENT
+            return SEType.UNCLOSED_COMMENT
         elif lexeme == "*/":
-            return ErrorType.UNMATCHED_COMMENT
+            return SEType.UNMATCHED_COMMENT
         else:
-            return ErrorType.INVALID_INPUT
+            return SEType.INVALID_INPUT
 
 
     def _get_next_token(self):
@@ -113,7 +80,7 @@ class Scanner:
 
         dfa: Optional[DFA] = self._select_dfa()
         new_token: Optional[Token] = None
-        new_err: Optional[Error] = None
+        new_err: Optional[SError] = None
         
         if dfa is not None:
             if dfa is CommentDFA:
@@ -140,13 +107,17 @@ class Scanner:
             if dfa.state == FINAL_STATE and self._current_token_type not in \
                     [TokenType.WHITESPACE, TokenType.COMMENT]:
                 lexeme = self._inp_file[self._p1: self._p2 + 1]
-                if lexeme in self._keywords:
+                
+                if lexeme in SymbolTable().keywords:
                     self._current_token_type = TokenType.KEYWORD
+                
                 token_type = self._current_token_type
                 new_token = Token(self._current_line_num, lexeme, token_type)
-                if lexeme not in self._symbol_table and \
+
+                if lexeme not in SymbolTable().keywords and \
                         self._current_token_type in [TokenType.ID, TokenType.KEYWORD]:
-                    self._symbol_table.append(lexeme)
+                    SymbolTable().table.append(Row(lexeme, self._current_token_type, Attribute(None)))
+                
                 self._tokens.append(new_token)
 
         # process error caused by the lexeme
@@ -173,11 +144,11 @@ class Scanner:
                 lexeme = self._inp_file[self._p1: self._p2 + 1]
 
             err_type = self._get_err_type(lexeme)
-            if not err_type == ErrorType.UNCLOSED_COMMENT:
-                new_err = Error(self._current_line_num, lexeme, err_type)
+            if not err_type == SEType.UNCLOSED_COMMENT:
+                new_err = SError(self._current_line_num, lexeme, err_type)
 
             else:
-                new_err = Error(self._multiline_comment_start_line, lexeme, err_type)
+                new_err = SError(self._multiline_comment_start_line, lexeme, err_type)
 
             self._errs.append(new_err)
 
@@ -246,8 +217,8 @@ class Scanner:
 
         save_dir = 'symbol_table.txt'
         with open(save_dir, 'w') as f:
-            for ix, symbol in enumerate(self._symbol_table):
-                f.write(f"{ix + 1}.\t{symbol}\n")
+            for ix, row in enumerate(SymbolTable().table):
+                f.write(f"{ix + 1}.\t{row.lexeme}\n")
 
     def _save(self):
         """saves tokens, errors and the symbol table in separate text files"""

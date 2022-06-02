@@ -1,0 +1,56 @@
+Program -> Statements
+Statements -> Statement ; Statements
+Statements -> EPSILON
+Statement -> Compound_stmt
+Statement -> Simple_stmt
+Simple_stmt -> Assignment_Call
+Simple_stmt -> Return_stmt
+Simple_stmt -> Global_stmt
+Simple_stmt -> break
+Simple_stmt -> continue
+Compound_stmt -> Function_def
+Compound_stmt -> If_stmt
+Compound_stmt -> Iteration_stmt
+Assignment_Call -> ID B
+B -> #PID = C
+B -> [ Expression ] #ADDR = C
+B -> #CALL ( Arguments ) #JP_FUNC
+C -> Expression #ASSIGN
+C -> [ #REF Expression #ASSIGN2 List_Rest ]
+List_Rest -> , Expression #ASSIGN2 List_Rest
+List_Rest -> EPSILON #POP
+Return_stmt -> return Return_Value
+Return_Value -> Expression
+Return_Value -> EPSILON
+Global_stmt -> global ID
+Function_def -> def ID #CHG_SCOPE ( Params ) : #SET_RET_ADDR Statements #END_FUNC
+Params -> ID Params_Prime
+Params -> EPSILON
+Params_Prime -> , ID Params_Prime
+Params_Prime -> EPSILON
+If_stmt -> if Relational_Expression #SAVE : Statements #SAVE Else_block #SAVE_JPT
+Else_block -> else #SAVE_JPF : Statements
+Else_block -> EPSILON
+Iteration_stmt -> #WHILE_JPB while ( Relational_Expression ) #SAVE Statements #SAVE_WHILE
+Relational_Expression -> Expression Relop Expression #SET_RELOP
+Relop -> == #RELOP0
+Relop -> < #RELOP1
+Expression -> Term Expression_Prime
+Expression_Prime -> + Term #ADD Expression_Prime
+Expression_Prime -> - Term #SUB Expression_Prime
+Expression_Prime -> EPSILON
+Term -> Factor Term_Prime
+Term_Prime -> * Factor #MULT Term_Prime
+Term_Prime -> EPSILON
+Factor -> Atom Power
+Power -> ** Factor
+Power -> Primary
+Primary -> [ Expression ] Primary
+Primary -> #CALL ( Arguments ) #JP_FUNC Primary
+Primary -> EPSILON #POW
+Arguments -> Expression #SET_ARG_ADDR Arguments_Prime
+Arguments -> EPSILON
+Arguments_Prime -> , Expression #SET_ARG_ADDR Arguments_Prime
+Arguments_Prime -> EPSILON
+Atom -> ID #PID
+Atom -> NUM #PNUM

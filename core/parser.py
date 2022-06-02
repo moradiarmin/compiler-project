@@ -2,11 +2,8 @@ from typing import Callable, List, Dict, Tuple
 
 from anytree import Node, RenderTree
 
-from scanner import EOF, Token, TokenType
-
-EPSILON = 'EPSILON'
-NULL = 'null'
-SYNC = 'sync'
+from core.scanner import EOF, Token, TokenType
+from utils.constants import EPSILON, SYNC, NULL
 
 class Parser:
     """ parser module using LL(1) algorithm

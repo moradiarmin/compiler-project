@@ -1,8 +1,6 @@
-FINAL_STATE = -1
-UNKNOWN = -2
-ascii_lowercase = 'abcdefghijklmnopqrstuvwxyz'
-ascii_uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-digits = '0123456789'
+
+from utils.constants import UNKNOWN, ASCII_LOWERCASE, ASCII_UPPERCASE, DIGIT, FINAL_STATE
+
 
 class DFA:
     """a general DFA class to define its policy"""
@@ -72,7 +70,7 @@ class WhitespaceDFA(DFA):
 
 class SymbolDFA(DFA):
     chars = ["=", "*", ";", ":", ",", "[", "]", "(", ")", "+", "-", "<"]
-    gen_others = list(ascii_lowercase + ascii_uppercase + digits)
+    gen_others = list(ASCII_LOWERCASE + ASCII_UPPERCASE + DIGIT)
     others = gen_others + CommentDFA.chars + WhitespaceDFA.whitespace_chars
 
     def move(cls, action: str):
