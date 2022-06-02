@@ -1,32 +1,17 @@
-from dataclasses import dataclass
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 from core.scanner import TokenType
-from modules.token import Token
+from data_class.symbol_table import Attribute, Row
+from data_class.token import Token
 from utils.patterns.singleton import Singleton
 
     
-@dataclass
-class Attribute:
-    scope_no: int
-
-@dataclass
-class FuncAttribute(Attribute):
-    args_addr: Optional[List[int]]
-    jp_addr: int
-
-@dataclass
-class Row:
-    lexeme: Token
-    type: TokenType  
-    attribute: Union[Attribute, FuncAttribute]      
-
 class SymbolTable(metaclass=Singleton):
     
     def __init__(self, keywords: List[str]) -> None:
         self.keywords = keywords
         self.table: List[Row] = list()
-        self._scope_no: int = None
+        self.scope_no: int = 0
         self.scope_boundary: List[Tuple[int, int]] = list()
 
     def __enter__(self) -> 'SymbolTable':
@@ -43,7 +28,15 @@ class SymbolTable(metaclass=Singleton):
     def _reset(self) -> None:
         self.table.clear()
         self.scope_boundary.clear()
-        self._scope_no = None
+        self.scope_no = None
 
     def set_scope_no(self, scope_no: int) -> None:
-        self._scope_no = scope_no
+        self.scope_no = scope_no
+
+    def find_row(self, lexeme: str) -> Row:
+        start, end = self.scope_boundary[self.scope_no]
+
+        for i in range(start, end + 1):
+            if self.table[i].lexeme == lexeme:
+                return self.table[i]
+        

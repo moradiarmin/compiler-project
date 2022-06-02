@@ -13,7 +13,7 @@ Compound_stmt -> If_stmt
 Compound_stmt -> Iteration_stmt
 Assignment_Call -> ID B
 B -> #PID = C
-B -> [ Expression ] #ADDR = C
+B -> #PID [ Expression ] #ADDR = C
 B -> #CALL ( Arguments ) #JP_FUNC
 C -> Expression #ASSIGN
 C -> [ #REF Expression #ASSIGN2 List_Rest ]

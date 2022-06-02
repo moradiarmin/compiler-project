@@ -2,8 +2,8 @@ from typing import List, Optional, Tuple
 from enums.error import ScannerErrorType as SEType
 
 from enums.token_type import TokenType
-from modules.error import ScannerError as SError
-from modules.token import Token
+from data_class.error import ScannerError as SError
+from data_class.token import Token
 from modules.symbol_table import Attribute, Row, SymbolTable
 from modules.dfa import *
 from utils.constants import EOF
@@ -116,7 +116,9 @@ class Scanner:
 
                 if lexeme not in SymbolTable().keywords and \
                         self._current_token_type in [TokenType.ID, TokenType.KEYWORD]:
-                    SymbolTable().table.append(Row(lexeme, self._current_token_type, Attribute(None)))
+                    SymbolTable().table.append(
+                            Row(lexeme, self._current_token_type, Attribute(None, None))
+                            )
                 
                 self._tokens.append(new_token)
 
