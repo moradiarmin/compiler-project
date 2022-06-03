@@ -58,22 +58,32 @@ def CALL(lexeme: str):
     assert isinstance(row.attribute, FuncAttribute)
 
     Semantic().stack.append(Arg(AddressType.NUM, row.attribute.start_addr_in_PB))
+    Semantic().stack.append(Arg(AddressType.DIRECT, row.attribute.jp_addr))
     
+    row.attribute.ret_val_addr = Memory().get_new_tmp()
     for addr in row.attribute.args_addr[::-1]:
         Semantic().stack.append(Arg(AddressType.DIRECT, addr))
 
 def JP_FUNC():
+    # fill jp_addr first
+    Memory().set_new_command(
+        AddressingMode(
+            Command.ASSIGN,
+            Arg(AddressType.NUM, Memory().prog_p),
+            Semantic().stack[TOP],
+            None
+        )
+    )
+    POP()
+
     Memory().set_new_command(
         AddressingMode(
             Command.JP,
             Semantic().stack[TOP],
             None,
             None))
-    POP()
+    POP() 
 
-    Semantic().stack.append(Arg(AddressType.NUM, Memory().prog_p))
-    Semantic().stack.append(Arg(AddressType.DIRECT, Memory().get_new_tmp()))
-    
 def ASSIGN():
     arg2 = Semantic().stack[TOP-1]
     if arg2.val >= Memory().start_tmp_p:
@@ -124,12 +134,51 @@ def POP(idx=None):
     else:
         Semantic().stack.pop(idx)
 
+def SET_RET_VAL():
+    ret_val_addr, jp_addr = SymbolTable().find_func_ret_val_jp_addr(Semantic().scope_no)
+    arg2 = Arg(AddressType.DIRECT, ret_val_addr)
+    Memory().set_new_command(
+        AddressingMode(
+            Command.ASSIGN,
+            Semantic().stack[TOP],
+            arg2,
+            None
+        )
+    )
+    POP()
+
+    arg2 = Arg(AddressType.DIRECT, jp_addr)
+    Memory().set_new_command(
+        AddressingMode(
+            Command.JP,
+            arg2,
+            None,
+            None
+        )
+    )
+
 def CHG_SCOPE(lexeme: int):
     row = SymbolTable().find_row(lexeme, Semantic().scope_no)
     assert isinstance(row.attribute, FuncAttribute)
 
     row.attribute.start_addr_in_PB = Memory().prog_p
     Semantic().create_new_scope()
+
+    row.attribute.ret_val_addr = Memory().get_new_data_addr()
+    row.attribute.jp_addr = Memory().get_new_data_addr()
+
+def END_FUNC():
+    ret_val_addr, jp_addr = SymbolTable().find_func_ret_val_jp_addr(Semantic().scope_no)
+    arg2 = Arg(AddressType.DIRECT, jp_addr)
+    Memory().set_new_command(
+        AddressingMode(
+            Command.JP,
+            arg2,
+            None,
+            None
+        )
+    )
+    Semantic().stack.append(Arg(AddressType.DIRECT, ret_val_addr))
 
 def SAVE():
     Semantic().stack.append(Arg(AddressType.NUM, Memory().prog_p))
@@ -152,6 +201,65 @@ def SAVE_JPT():
     Memory().set_new_command(
         AddressingMode(
             Command.JP,
-            
+            Arg(AddressType.NUM, Memory().prog_p),
+            None,
+            None
+        ),
+        idx=Semantic().stack[TOP].val
+    )
+    POP()
+
+def WHILE_JPB():
+    Semantic().stack.append(Arg(AddressType.NUM, Memory().prog_p))
+
+def SAVE_WHILE():
+    Memory().set_new_command(
+        AddressingMode(
+            Command.JPF,
+            Semantic().stack[TOP-1],
+            Arg(AddressType.NUM, Memory().prog_p + 1),
+            None
+        ),
+        idx=Semantic().stack[TOP].val
+    )
+    POP()
+    POP()
+
+    Memory().set_new_command(
+        AddressingMode(
+            Command.JP,
+            Semantic().stack[TOP],
+            None,
+            None
         )
     )
+    POP()
+
+def RELOP0():
+    Semantic().stack.append(Arg(AddressType.NUM, 0))
+
+def RELOP1():
+    Semantic().stack.append(Arg(AddressType.NUM, 1))
+
+def SET_RELOP():
+    arg3 = Arg(AddressType.DIRECT, Memory().get_new_tmp())
+    if Semantic().stack[TOP-1].val == 0:
+        command = Command.EQ
+    elif Semantic().stack[TOP-1].val == 1:
+        command = Command.LT
+    else:
+        raise Exception()
+    
+    Memory().set_new_command(
+        AddressingMode(
+            command,
+            Semantic().stack[TOP-2],
+            Semantic().stack[TOP],
+            arg3
+        )
+    )
+
+    POP()
+    POP()
+    POP()
+    Semantic().stack.append(arg3)

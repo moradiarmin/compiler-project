@@ -20,10 +20,10 @@ C -> [ #REF Expression #ASSIGN2 List_Rest ]
 List_Rest -> , Expression #ASSIGN2 List_Rest
 List_Rest -> EPSILON #POP
 Return_stmt -> return Return_Value
-Return_Value -> Expression
+Return_Value -> Expression #SET_RET_VAL
 Return_Value -> EPSILON
 Global_stmt -> global ID
-Function_def -> def ID #CHG_SCOPE ( Params ) : #SET_RET_ADDR Statements #END_FUNC
+Function_def -> def ID #CHG_SCOPE ( Params ) : Statements #END_FUNC
 Params -> ID Params_Prime
 Params -> EPSILON
 Params_Prime -> , ID Params_Prime

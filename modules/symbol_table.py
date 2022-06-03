@@ -2,7 +2,7 @@ from typing import List, Tuple, Dict
 
 from core.scanner import TokenType
 from data_class.node import Node
-from data_class.symbol_table import Attribute, Row
+from data_class.symbol_table import Attribute, FuncAttribute, Row
 from modules.semantic import Semantic
 from utils.patterns.singleton import Singleton
 
@@ -35,7 +35,20 @@ class SymbolTable(metaclass=Singleton):
             end = len(self.table)
 
         for i in range(start, end):
+            i = i + start
             if self.table[i].lexeme == lexeme:
                 return self.table[i]
 
         return self.find_row(lexeme, Semantic().scope_tree[scope_no].father)
+
+    def find_func_ret_val_jp_addr(self, scope_no: int):
+        start, end = self.scope_boundary[scope_no]
+        if end is None:
+            end = len(self.table)
+
+        for i in range(start, end):
+            i = i + start
+            if isinstance(self.table[i].attribute, FuncAttribute):
+                row = self.table[i]
+                return (row.attribute.ret_val_addr, row.attribute.jp_addr)
+        

@@ -65,7 +65,7 @@ class Memory(metaclass=Singleton):
 
     def get_new_data_addr(self) -> int:
         p = self._data_p
-        self._data_p += 1
+        self._data_p += self.unit
         return p
 
     # def get_tmp(self, arg: Arg) -> int:
@@ -81,5 +81,5 @@ class Memory(metaclass=Singleton):
 
     def get_new_tmp(self) -> int:
         p = self._tmp_p
-        self._tmp_p += 1
+        self._tmp_p += self.unit
         return p

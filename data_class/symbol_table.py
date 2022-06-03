@@ -12,6 +12,7 @@ class Attribute:
 @dataclass
 class FuncAttribute(Attribute):
     args_addr: List[int]
+    ret_val_addr: int
     jp_addr: int
     start_addr_in_PB: int
 
