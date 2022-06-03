@@ -13,7 +13,7 @@ Compound_stmt -> If_stmt
 Compound_stmt -> Iteration_stmt
 Assignment_Call -> ID B
 B -> #PID = C
-B -> #PID [ Expression ] #ADDR = C
+B -> #PID [ #SET_PT Expression #MOVE_PT ] = C
 B -> #CALL ( Arguments ) #JP_FUNC
 C -> Expression #ASSIGN
 C -> [ #REF Expression #ASSIGN2 List_Rest ]
@@ -30,7 +30,7 @@ Params_Prime -> , ID Params_Prime
 Params_Prime -> EPSILON
 If_stmt -> if Relational_Expression #SAVE : Statements #SAVE Else_block #SAVE_JPT
 Else_block -> else #SAVE_JPF : Statements
-Else_block -> EPSILON
+Else_block -> EPSILON #SAVE_JPF
 Iteration_stmt -> #WHILE_JPB while ( Relational_Expression ) #SAVE Statements #SAVE_WHILE
 Relational_Expression -> Expression Relop Expression #SET_RELOP
 Relop -> == #RELOP0
@@ -45,7 +45,7 @@ Term_Prime -> EPSILON
 Factor -> Atom Power
 Power -> ** Factor
 Power -> Primary
-Primary -> [ Expression ] Primary
+Primary -> [ #SET_PT Expression #MOVE_PT ] Primary
 Primary -> #CALL ( Arguments ) #JP_FUNC Primary
 Primary -> EPSILON #POW
 Arguments -> Expression #SET_ARG_ADDR Arguments_Prime

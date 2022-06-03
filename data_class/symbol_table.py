@@ -23,4 +23,4 @@ class ArrAttribute(Attribute):
 class Row:
     lexeme: Token
     type: TokenType  
-    attribute: Union[Attribute, ArrAttribute, FuncAttribute]      
+    attribute: Union[Attribute, FuncAttribute]      

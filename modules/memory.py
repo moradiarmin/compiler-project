@@ -1,6 +1,7 @@
 from typing import List, Optional, Union
 from enums.addressing import AddressType
 from data_class.addressing_mode import AddressingMode, Arg
+from enums.command import Command
 
 from utils.patterns.singleton import Singleton
 
@@ -8,13 +9,13 @@ from utils.patterns.singleton import Singleton
 class Memory(metaclass=Singleton):
     """ Runtime memory """
 
-    def __init__(self, prog_size: int = 100, data_size: int = 400, capacity=1000) -> None:
+    def __init__(self, unit: int=4, prog_size: int = 100, data_size: int = 400, capacity=1000) -> None:
         
         self._start_prog_p: int = 0
         self._start_data_p: int = prog_size
-        self._start_tmp_p: int = prog_size + data_size
+        self.start_tmp_p: int = prog_size + data_size
         self._capacity: int = capacity
-        
+        self.unit: int = 4
         self.prog_p: int = self._start_prog_p
         """ program block pointer """
 
@@ -41,10 +42,15 @@ class Memory(metaclass=Singleton):
             self._space[i] = None
 
     def set_new_command(self, addressing: AddressingMode, idx: Optional[int] = None) -> None:
+        if addressing.command == Command.JP:
+            addressing.first.type = AddressType.DIRECT
+        elif addressing.command == Command.JPF:
+            addressing.second.type = AddressType.DIRECT
         if idx is not None:
             self._space[idx] = addressing.three_mode
         else:
             self._space[self.prog_p] = addressing.three_mode
+            Memory().prog_p += self.unit
 
     # def get_data(self, arg: Arg) -> int:
     #     if arg.type == AddressType.INDIRECT:
