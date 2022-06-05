@@ -1,4 +1,3 @@
-from ctypes import Union
 from typing import Literal
 from data_class.addressing_mode import AddressingMode, Arg
 from data_class.symbol_table import Attribute, FuncAttribute, ItmtAttribute
@@ -67,6 +66,7 @@ def CALL(lexeme: str):
     row = SymbolTable().find_row(lexeme, Semantic().current_scope)
     assert isinstance(row.attribute, FuncAttribute)
     
+    POP()
     Semantic().stack.append(Arg(AddressType.DIRECT, row.attribute.ret_val_addr))
     Semantic().stack.append(Arg(AddressType.NUM, row.attribute.start_addr_in_PB))
     Semantic().stack.append(Arg(AddressType.DIRECT, row.attribute.jp_addr))
@@ -119,7 +119,7 @@ def ASSIGN():
             None))
     POP()
     POP()
-
+    
 def ASSIGN2():
     Memory().set_new_command(
         AddressingMode(
@@ -184,6 +184,10 @@ def SET_RET_VAL():
         )
     )
 
+def SET_RET_VAL2():
+    Semantic().stack.append(Arg(AddressType.NUM, 0))
+    SET_RET_VAL()
+    
 def CHG_SCOPE(lexeme: int):
     row = SymbolTable().find_row(lexeme, Semantic().current_scope)
     assert isinstance(row.attribute, FuncAttribute)

@@ -13,6 +13,7 @@ class Action:
     POP = "#POP"
     GIVE_BACK = "#GIVE_BACK"
     SET_RET_VAL = "#SET_RET_VAL"
+    SET_RET_VAL2 = "#SET_RET_VAL2"
     CHG_SCOPE = "#CHG_SCOPE"
     END_FUNC = "#END_FUNC"
     NARG = "#NARG"

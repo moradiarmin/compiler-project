@@ -18,4 +18,5 @@ if __name__ == "__main__":
                 my_parser = Parser('grammar_v2.txt', my_scanner.pass_next_token_to_parser)
                 my_parser.parse()
                 my_parser.code_generator.fill_first_and_last()
+                # print(SymbolTable().table)
 

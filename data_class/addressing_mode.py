@@ -1,6 +1,5 @@
 from dataclasses import dataclass
-from ntpath import join
-from typing import Optional, TypeVar
+from typing import Optional
 
 from enums.addressing import AddressType
 from enums.command import Command

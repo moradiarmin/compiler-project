@@ -15,14 +15,14 @@ Compound_stmt -> Iteration_stmt
 Assignment_Call -> ID B
 B -> #PID = C
 B -> #PID2 [ #SET_PT Expression #MOVE_PT ] = C
-B -> #CALL ( Arguments ) #JP_FUNC
+B -> #PID2 #CALL ( Arguments ) #JP_FUNC
 C -> Expression #ASSIGN
 C -> [ #CREATE_P Expression #ASSIGN2 List_Rest ]
 List_Rest -> , Expression #ASSIGN2 List_Rest
 List_Rest -> EPSILON #POP #GIVE_BACK
 Return_stmt -> return Return_Value
 Return_Value -> Expression #SET_RET_VAL
-Return_Value -> EPSILON
+Return_Value -> EPSILON #SET_RET_VAL2
 Global_stmt -> global ID
 Function_def -> def ID #CHG_SCOPE ( Params ) : Statements #END_FUNC
 Params -> ID #NARG Params_Prime
