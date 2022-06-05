@@ -22,9 +22,9 @@ class SymbolTable(metaclass=Singleton):
         self._reset()
         
     def _put_keywords_in_table(self) -> None:
-        self.table = [Row(lexeme, TokenType.KEYWORD, Attribute(Semantic().scope_no, None)) 
+        self.table = [Row(lexeme, TokenType.KEYWORD, Attribute(Semantic().current_scope, None)) 
                 for lexeme in self.keywords]
-        self.scope_boundary[Semantic().scope_no] = (0, None)
+        self.scope_boundary[Semantic().current_scope] = (0, None)
         
 
     def _reset(self) -> None:
@@ -37,29 +37,30 @@ class SymbolTable(metaclass=Singleton):
             if row.lexeme == lexeme:
                 existed = row
 
-        
         if existed is not None and isinstance(existed.attribute, FuncAttribute):
             return
 
-        if existed is not None and existed.attribute.scope_no == Semantic().scope_no:
+        if existed is not None and existed.attribute.scope_no == Semantic().current_scope:
             return
 
         SymbolTable().table.append(
-            Row(lexeme, token_type, Attribute(Semantic().scope_no, None))
+            Row(lexeme, token_type, Attribute(Semantic().current_scope, None))
         )
 
-    def find_row(self, lexeme: str, scope_no: int) -> Row:
+    def find_row(self, lexeme: str, scope_no: int, force_mem_addr: bool = False) -> Row:
         start, end = self.scope_boundary[scope_no]
         if end is None:
             end = len(self.table)
 
         for i in range(start, end):
-            if self.table[i].lexeme == lexeme:
-                return self.table[i]
+            if self.table[i].lexeme != lexeme:
+                continue
+            if force_mem_addr and self.table[i].attribute.mem_addr is None:
+                continue
+            return self.table[i]
+        return self.find_row(lexeme, Semantic().scope_tree[scope_no].father.scope_no, force_mem_addr)
 
-        return self.find_row(lexeme, Semantic().scope_tree[scope_no].father.scope_no)
-
-    def find_func_ret_val_jp_addr(self, scope_no: int):
+    def find_func_scope(self, scope_no: int):
         start, end = self.scope_boundary[scope_no]
         if end is None:
             end = len(self.table)
@@ -67,5 +68,5 @@ class SymbolTable(metaclass=Singleton):
         for i in range(start, end):
             if isinstance(self.table[i].attribute, FuncAttribute):
                 row = self.table[i]
-                return (row.attribute.ret_val_addr, row.attribute.jp_addr)
-        
+                return row
+    

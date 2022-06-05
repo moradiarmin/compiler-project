@@ -9,6 +9,7 @@ from data_class.addressing_mode import AddressingMode, Arg
 
 from enums.semantic_action import Action
 from modules.memory import Memory
+from modules.semantic import Semantic
 from modules.symbol_table import SymbolTable
 
 class CodeGenerator:
@@ -24,7 +25,7 @@ class CodeGenerator:
         routines = import_module(f"utils.routines")
         func = getattr(routines, action[1:])
 
-        if action in [Action.CALL, Action.CHG_SCOPE, Action.PID, Action.PNUM]:
+        if action in [Action.CALL, Action.CHG_SCOPE, Action.PID, Action.PID2, Action.PNUM, Action.NARG]:
             func(self.last_parsed_token)
         elif action == "#MATH":
             func(prev_action[1:])
@@ -38,18 +39,25 @@ class CodeGenerator:
                     return row
         main = _find_main_row()
 
-        p = Memory().prog_p
-
-        # fill first program block row (jumping to main())
         Memory().set_new_command(
             AddressingMode(
-                Command.JP,
-                Arg(AddressType.NUM, p),
-                None,
+                Command.ASSIGN,
+                Arg(AddressType.NUM, Memory().prog_p + 2),
+                Arg(AddressType.DIRECT, main.attribute.jp_addr),
                 None
-            ),
-            idx=Memory().start_prog_p
+            )
         )
+
+        # fill first program block row (jumping to main())
+        # Memory().set_new_command(
+        #     AddressingMode(
+        #         Command.JP,
+        #         Arg(AddressType.NUM, Memory().prog_p - 1),
+        #         None,
+        #         None
+        #     ),
+        #     idx=Memory().start_prog_p
+        # )
 
         # fill last program block row (running main())
         Memory().set_new_command(

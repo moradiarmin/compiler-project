@@ -17,7 +17,7 @@ class Memory(metaclass=Singleton):
         self._capacity: int = capacity
         self.unit: int = unit
         self.pow_idx: int = None
-        self.prog_p: int = self.start_prog_p + self.unit
+        self.prog_p: int = self.start_prog_p
         r""" program block pointer (NOTE: first one is reserved for jumping into `main()`) """
 
         self.data_p: int = self._start_data_p
@@ -36,8 +36,15 @@ class Memory(metaclass=Singleton):
         self._space = [None] * self._capacity
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self._write_commands()
         self._reset_space()
     
+    def _write_commands(self):
+        
+        with open('output.txt', 'w') as f:   
+            for i, command in enumerate(self._space[:self.prog_p]):
+                f.write(f"{i}\t{command}\n")
+
     def _reset_space(self):
         for i in range(self._capacity):
             self._space[i] = None
@@ -51,7 +58,7 @@ class Memory(metaclass=Singleton):
             self._space[idx] = addressing.three_mode
         else:
             self._space[self.prog_p] = addressing.three_mode
-            self.prog_p += self.unit
+            self.prog_p += 1
 
     def get_new_data_addr(self) -> int:
         p = self.data_p

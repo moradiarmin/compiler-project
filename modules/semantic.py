@@ -9,8 +9,10 @@ class Semantic(metaclass=Singleton):
 
     def __init__(self) -> None:
         self.stack: List[Arg] = None
+        self.stack_recorder: List[int] = list()
+        self.current_scope: int = None
         self.scope_tree: Dict[int, Node] = None
-        self.scope_no: int = None
+        self.no_scopes: int = None
 
     def __enter__(self) -> 'Semantic':
         self._start()
@@ -19,18 +21,23 @@ class Semantic(metaclass=Singleton):
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.stack.clear()
         self.scope_tree.clear()
-        self.scope_no = None
+        self.no_scopes = None
 
     def _start(self) -> None:
         self.stack = list()
-        self.scope_no = 0
+        self.no_scopes = 1
+        self.current_scope: int = 0
 
         self.scope_tree = dict()
-        root = Node(self.scope_no)
-        self.scope_tree[self.scope_no] = root
+        root = Node(self.current_scope)
+        self.scope_tree[self.current_scope] = root
 
     def create_new_scope(self):
-        father = self.scope_tree[self.scope_no]
-        self.scope_no += 1
-        node = Node(self.scope_no, father)
-        self.scope_tree[self.scope_no] = node
+        father = self.scope_tree[self.current_scope]
+        node = Node(self.no_scopes, father)
+        self.scope_tree[self.no_scopes] = node
+        self.switch_scope(self.no_scopes)    
+        self.no_scopes += 1
+
+    def switch_scope(self, scope_no: int):
+        self.current_scope = scope_no

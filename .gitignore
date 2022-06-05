@@ -8,3 +8,5 @@ input.txt
 parse_tree.txt
 syntax_errors.txt
 *.zip
+output.txt
+tester

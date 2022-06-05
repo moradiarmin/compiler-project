@@ -17,11 +17,12 @@ class FuncAttribute(Attribute):
     start_addr_in_PB: int
 
 @dataclass
-class ArrAttribute(Attribute):
-    pointer: int
+class ItmtAttribute(Attribute):
+    breaks_PB: List[int]
+    continues_PB: List[int]
 
 @dataclass
 class Row:
     lexeme: Token
     type: TokenType  
-    attribute: Union[Attribute, FuncAttribute]      
+    attribute: Union[Attribute, FuncAttribute, ItmtAttribute]      

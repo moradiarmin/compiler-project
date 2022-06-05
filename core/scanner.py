@@ -17,7 +17,7 @@ class Scanner:
         save_dir (str): directory where scanner outputs are saved
     """
     def __init__(self, input_dir: str, save_dir: str) -> None:
-        self._inp_file: str = "global;" + open(input_dir).read() + " "
+        self._inp_file: str = "def output(x):\n\tprint(x);\n\treturn 0;\n;\n\n" + open(input_dir).read() + " "
         self._save_dir: str = save_dir
 
         self._current_line_num: int = 1
@@ -115,8 +115,7 @@ class Scanner:
                 token_type = self._current_token_type
                 new_token = Token(self._current_line_num, lexeme, token_type)
 
-                if lexeme not in SymbolTable().keywords and \
-                        self._current_token_type in [TokenType.ID, TokenType.KEYWORD]:
+                if self._current_token_type in [TokenType.ID, TokenType.KEYWORD, TokenType.KEYWORD]:
                     SymbolTable().add_row(lexeme, self._current_token_type)
                 
                 self._tokens.append(new_token)

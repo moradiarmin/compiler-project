@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from ntpath import join
 from typing import Optional, TypeVar
 
 from enums.addressing import AddressType
@@ -26,4 +27,5 @@ class AddressingMode:
         third_comb = "" if self.third is None else self.third.comb
         
         parts = [self.command, self.first.comb, second_comb, third_comb]
-        return ", ".join(parts)
+        joined = ", ".join(parts)
+        return f"({joined})"

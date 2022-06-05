@@ -45,36 +45,36 @@ class Parser:
         """ all errors occured during parsing """
 
         self._parse_table: Dict[Tuple[str, str], int] = {
-            'Program': {'break': 1, 'continue': 1, 'ID': 1, 'return': 1, 'global': 1, 'def': 1, 'if': 1, 'while': 1, '$': 1},
-            'Statements': {'break': 2, 'continue': 2, 'ID': 2, 'return': 2, 'global': 2, 'def': 2, 'if': 2, 'while': 2, 'if': 2, ';': 3, 'else': 3, '$': 3},
-            'Statement': {'def': 4, 'if': 4, 'while': 4, 'break': 5, 'continue': 5, 'ID': 5, 'return': 5, 'global': 5},
-            'Simple_stmt': {'ID': 6, 'return': 7, 'global': 8, 'break': 9, 'continue': 10},
-            'Compound_stmt': {'def': 11, 'if': 12, 'while': 13},
-            'Assignment_Call': {'ID': 14},
-            'B': {'=': 15, '[': 16, '(': 17},
-            'C': {'ID': 18, 'NUM': 18, '[': 19},
-            'List_Rest': {',': 20, ']': 21},
-            'Return_stmt': {'return': 22},
-            'Return_Value': {'ID': 23, 'NUM': 23, ';': 24},
-            'Global_stmt': {'global': 25},
-            'Function_def': {'def': 26},
-            'Params': {'ID': 27, ')': 28},
-            'Params_Prime': {',': 29, ')': 30},
-            'If_stmt': {'if': 31},
-            'Else_block': {'else': 32, ';': 33},
-            'Iteration_stmt': {'while': 34},
-            'Relational_Expression': {'ID': 35, 'NUM': 35},
-            'Relop': {'==': 36, '<': 37},
-            'Expression': {'ID': 38, 'NUM': 38},
-            'Expression_Prime': {'+': 39, '-': 40, ';': 41, ']': 41, ')': 41, ',': 41, ':': 41, '==': 41, '<': 41},
-            'Term': {'ID': 42, 'NUM': 42},
-            'Term_Prime': {'*': 43, ';': 44, ']': 44, ')': 44, ',': 44, ':': 44, '==': 44, '<': 44, '+': 44, '-': 44},
-            'Factor': {'ID': 45, 'NUM': 45},
-            'Power': {'**': 46, ';': 47, '[': 47, '(': 47, ']': 47, ')': 47, ',': 47, ':': 47, '==': 47, '<': 47, '+': 47, '-': 47, '*': 47},
-            'Primary': {'[': 48, '(': 49, ';': 50, ']': 50, ')': 50, ',': 50, ':': 50, '==': 50, '<': 50, '+': 50, '-': 50, '*': 50},
-            'Arguments': {'ID': 51, 'NUM': 51, ')': 52},
-            'Arguments_Prime': {',': 53, ')': 54},
-            'Atom': {'ID': 55, 'NUM': 56},
+            'Program': {'break': 1, 'continue': 1, 'ID': 1, 'return': 1, 'global': 1, 'def': 1, 'if': 1, 'while': 1, 'print': 1, '$': 1},
+            'Statements': {'break': 2, 'continue': 2, 'ID': 2, 'return': 2, 'global': 2, 'def': 2, 'if': 2, 'while': 2, 'print': 2, ';': 3, 'else': 3, '$': 3},
+            'Statement': {'def': 4, 'if': 4, 'while': 4, 'break': 5, 'continue': 5, 'ID': 5, 'return': 5, 'global': 5, 'print': 5},
+            'Simple_stmt': {'ID': 6, 'return': 7, 'global': 8, 'break': 9, 'continue': 10, 'print': 11},
+            'Compound_stmt': {'def': 12, 'if': 13, 'while': 14},
+            'Assignment_Call': {'ID': 15},
+            'B': {'=': 16, '[': 17, '(': 18},
+            'C': {'ID': 19, 'NUM': 19, '[': 20},
+            'List_Rest': {',': 21, ']': 22},
+            'Return_stmt': {'return': 23},
+            'Return_Value': {'ID': 24, 'NUM': 24, ';': 25},
+            'Global_stmt': {'global': 26},
+            'Function_def': {'def': 27},
+            'Params': {'ID': 28, ')': 29},
+            'Params_Prime': {',': 30, ')': 31},
+            'If_stmt': {'if': 32},
+            'Else_block': {'else': 33, ';': 34},
+            'Iteration_stmt': {'while': 35},
+            'Relational_Expression': {'ID': 36, 'NUM': 36},
+            'Relop': {'==': 37, '<': 38},
+            'Expression': {'ID': 39, 'NUM': 39},
+            'Expression_Prime': {'+': 40, '-': 41, ';': 42, ']': 42, ')': 42, ',': 42, ':': 42, '==': 42, '<': 42},
+            'Term': {'ID': 43, 'NUM': 43},
+            'Term_Prime': {'*': 44, ';': 45, ']': 45, ')': 45, ',': 45, ':': 45, '==': 45, '<': 45, '+': 45, '-': 45},
+            'Factor': {'ID': 46, 'NUM': 46},
+            'Power': {'**': 47, ';': 48, '[': 48, '(': 48, ']': 48, ')': 48, ',': 48, ':': 48, '==': 48, '<': 48, '+': 48, '-': 48, '*': 48},
+            'Primary': {'[': 49, '(': 50, ';': 51, ']': 51, ')': 51, ',': 51, ':': 51, '==': 51, '<': 51, '+': 51, '-': 51, '*': 51},
+            'Arguments': {'ID': 52, 'NUM': 52, ')': 53},
+            'Arguments_Prime': {',': 54, ')': 55},
+            'Atom': {'ID': 56, 'NUM': 57},
         }
         """ maps a non-terminal and terminal to the rule number or 'SYNC' """
 
@@ -173,7 +173,7 @@ class Parser:
                     self._errs.append(f'#{line_no} : syntax error, missing {X}')
                 
                 if self._record_func_lexeme and token.lexeme != "def":
-                    row = SymbolTable().find_row(token.lexeme, Semantic().scope_no)
+                    row = SymbolTable().find_row(token.lexeme, Semantic().current_scope)
                     row.attribute = FuncAttribute(row.attribute.scope_no, row.attribute.mem_addr, [], None, None, None)
                     self._record_func_lexeme = False
 
