@@ -22,5 +22,8 @@ class AddressingMode:
 
     @property
     def three_mode(self) -> str:
-        parts = [self.command, self.first.comb, self.second.comb, self.third.comb]
+        second_comb = "" if self.second is None else self.second.comb
+        third_comb = "" if self.third is None else self.third.comb
+        
+        parts = [self.command, self.first.comb, second_comb, third_comb]
         return ", ".join(parts)

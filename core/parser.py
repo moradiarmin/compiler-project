@@ -1,8 +1,12 @@
 from typing import Callable, List, Dict, Tuple
 
 from anytree import Node, RenderTree
+from core.code_gen import CodeGenerator
 
 from core.scanner import EOF, Token, TokenType
+from data_class.symbol_table import FuncAttribute
+from modules.semantic import Semantic
+from modules.symbol_table import SymbolTable
 from utils.constants import EPSILON, SYNC, NULL
 
 class Parser:
@@ -108,6 +112,8 @@ class Parser:
         }
         """ maps a non-terminal to its list of follow """
 
+        self.code_generator: CodeGenerator = CodeGenerator()
+        self._record_func_lexeme: bool = False
 
     def _parse_grammar_file(self,
             grammar_addr: str):
@@ -130,7 +136,7 @@ class Parser:
             
             T_NT = list(set(T_NT))
             self._non_terminals = list(set(self._non_terminals))
-            self._terminals = [x for x in T_NT if x not in self._non_terminals]   
+            self._terminals = [x for x in T_NT if x not in self._non_terminals and not x.startswith("#")]   
 
 
     def parse(self): 
@@ -146,22 +152,31 @@ class Parser:
             line_no = token.line
             X = self.stack[0].name
 
+            if X.startswith("#"):
+                node = self.stack.pop(0)
+                self.code_generator.code_gen(X)
+
             # X is terminal
             if X in self._terminals:
                 node = self.stack.pop(0)
                 
                 if X == EPSILON:
                     node.name = node.name.lower()
-                    continue
                 
-                if X == token.lexeme or X == token_type:
+                elif X == token.lexeme or X == token_type:
                     node.name = token.all_in_one
                     token, token_type = self._call_scanner()
-                
+                    if token_type in [TokenType.ID, TokenType.NUMBER]:
+                        self.code_generator.last_parsed_token = token.lexeme
                 else:
                     node.parent = None
                     self._errs.append(f'#{line_no} : syntax error, missing {X}')
                 
+                if self._record_func_lexeme and token.lexeme != "def":
+                    row = SymbolTable().find_row(token.lexeme, Semantic().scope_no)
+                    row.attribute = FuncAttribute(row.attribute.scope_no, row.attribute.mem_addr, [], None, None, None)
+                    self._record_func_lexeme = False
+
             # X is non-terminal
             elif X in self._non_terminals:
                 T = token_type if token_type in [TokenType.ID, TokenType.NUMBER] else token.lexeme
@@ -173,6 +188,9 @@ class Parser:
                 if isinstance(rule_no, int):
                     lhs = self.stack.pop(0)
                     rhs = self._rules[rule_no]
+
+                    if rhs[0] == "Function_def":
+                        self._record_func_lexeme = True
 
                     self.stack = [Node(r, parent=lhs) for r in rhs] + self.stack          
 
@@ -225,6 +243,11 @@ class Parser:
 
         with open('parse_tree.txt', 'w') as f:
             for pre, _, node in RenderTree(self._root):
+                
+                # skip symbol actions
+                if node.name.startswith("#"):
+                    continue
+
                 f.write(f"{pre}{node.name}\n")
     
 

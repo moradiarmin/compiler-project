@@ -16,9 +16,9 @@ B -> #PID = C
 B -> #PID [ #SET_PT Expression #MOVE_PT ] = C
 B -> #CALL ( Arguments ) #JP_FUNC
 C -> Expression #ASSIGN
-C -> [ #REF Expression #ASSIGN2 List_Rest ]
+C -> [ #CREATE_P Expression #ASSIGN2 List_Rest ]
 List_Rest -> , Expression #ASSIGN2 List_Rest
-List_Rest -> EPSILON #POP
+List_Rest -> EPSILON #POP #GIVE_BACK
 Return_stmt -> return Return_Value
 Return_Value -> Expression #SET_RET_VAL
 Return_Value -> EPSILON
@@ -43,14 +43,14 @@ Term -> Factor Term_Prime
 Term_Prime -> * Factor #MULT Term_Prime
 Term_Prime -> EPSILON
 Factor -> Atom Power
-Power -> ** Factor
+Power -> ** #POW_USED Factor
 Power -> Primary
 Primary -> [ #SET_PT Expression #MOVE_PT ] Primary
 Primary -> #CALL ( Arguments ) #JP_FUNC Primary
 Primary -> EPSILON #POW
-Arguments -> Expression #SET_ARG_ADDR Arguments_Prime
+Arguments -> Expression #ASSIGN Arguments_Prime
 Arguments -> EPSILON
-Arguments_Prime -> , Expression #SET_ARG_ADDR Arguments_Prime
+Arguments_Prime -> , Expression #ASSIGN Arguments_Prime
 Arguments_Prime -> EPSILON
 Atom -> ID #PID
 Atom -> NUM #PNUM

@@ -4,6 +4,7 @@ from enums.error import ScannerErrorType as SEType
 from enums.token_type import TokenType
 from data_class.error import ScannerError as SError
 from data_class.token import Token
+from modules.semantic import Semantic
 from modules.symbol_table import Attribute, Row, SymbolTable
 from modules.dfa import *
 from utils.constants import EOF
@@ -16,7 +17,7 @@ class Scanner:
         save_dir (str): directory where scanner outputs are saved
     """
     def __init__(self, input_dir: str, save_dir: str) -> None:
-        self._inp_file: str = open(input_dir).read() + " "
+        self._inp_file: str = "global;" + open(input_dir).read() + " "
         self._save_dir: str = save_dir
 
         self._current_line_num: int = 1
@@ -116,9 +117,7 @@ class Scanner:
 
                 if lexeme not in SymbolTable().keywords and \
                         self._current_token_type in [TokenType.ID, TokenType.KEYWORD]:
-                    SymbolTable().table.append(
-                            Row(lexeme, self._current_token_type, Attribute(None, None))
-                            )
+                    SymbolTable().add_row(lexeme, self._current_token_type)
                 
                 self._tokens.append(new_token)
 

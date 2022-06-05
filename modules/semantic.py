@@ -1,7 +1,6 @@
 from typing import Dict, List
 from data_class.addressing_mode import Arg
 from data_class.node import Node
-from modules.symbol_table import SymbolTable
 
 from utils.patterns.singleton import Singleton
 
@@ -23,17 +22,15 @@ class Semantic(metaclass=Singleton):
         self.scope_no = None
 
     def _start(self) -> None:
-        self.stack = List[Arg]()
+        self.stack = list()
         self.scope_no = 0
 
-        self.scope_tree = Dict[str, Node]()
+        self.scope_tree = dict()
         root = Node(self.scope_no)
         self.scope_tree[self.scope_no] = root
-        SymbolTable().scope_boundary[self.scope_no] = (0, None)
 
     def create_new_scope(self):
         father = self.scope_tree[self.scope_no]
         self.scope_no += 1
         node = Node(self.scope_no, father)
         self.scope_tree[self.scope_no] = node
-        SymbolTable().scope_boundary[self.scope_no] = (0, None)
