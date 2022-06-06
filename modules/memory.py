@@ -16,7 +16,7 @@ class Memory(metaclass=Singleton):
         self.start_tmp_p: int = prog_size + data_size
         self._capacity: int = capacity
         self.unit: int = unit
-        self.pow_idx: int = None
+        self.pow_idx: int = 0
         self.prog_p: int = self.start_prog_p
         r""" program block pointer (NOTE: first one is reserved for jumping into `main()`) """
 

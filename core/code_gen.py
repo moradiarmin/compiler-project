@@ -1,6 +1,4 @@
 from importlib import import_module
-from re import S
-from typing import List
 from data_class.symbol_table import FuncAttribute
 from enums.addressing import AddressType
 

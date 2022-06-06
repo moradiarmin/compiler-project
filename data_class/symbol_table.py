@@ -20,6 +20,9 @@ class FuncAttribute(Attribute):
 class ItmtAttribute(Attribute):
     breaks_PB: List[int]
     continues_PB: List[int]
+    SS_break: List[int]
+    SS_cont: List[int]
+    start_addr_in_PBs: List[int]
 
 @dataclass
 class Row:

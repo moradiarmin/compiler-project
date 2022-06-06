@@ -1,4 +1,5 @@
 from typing import Literal
+
 from data_class.addressing_mode import AddressingMode, Arg
 from data_class.symbol_table import Attribute, FuncAttribute, ItmtAttribute
 from enums.addressing import AddressType
@@ -108,7 +109,7 @@ def JP_FUNC():
 
 def ASSIGN():
     arg2 = Semantic().stack[TOP-1]
-    if arg2.val >= Memory().start_tmp_p:
+    if int(arg2.val) >= Memory().start_tmp_p:
         Semantic().stack[TOP-1] = Arg(AddressType.INDIRECT, arg2.val)
         
     Memory().set_new_command(
@@ -274,7 +275,14 @@ def WHILE_JPB():
 
 def ITMT_ATTR():
     row = SymbolTable().find_row('while', Semantic().current_scope)
-    row.attribute = ItmtAttribute(row.attribute.scope_no, row.attribute.mem_addr, [], [])
+    if not isinstance(row.attribute, ItmtAttribute):
+        row.attribute = ItmtAttribute(row.attribute.scope_no, row.attribute.mem_addr, [], [],
+                                     [0], [0], [])
+    else:
+        row.attribute.SS_break.append(len(row.attribute.breaks_PB))
+        row.attribute.SS_cont.append(len(row.attribute.continues_PB))
+    
+    row.attribute.start_addr_in_PBs.append(Memory().prog_p)
 
 def SAVE_WHILE():
     row = SymbolTable().find_row('while', Semantic().current_scope)
@@ -289,7 +297,8 @@ def SAVE_WHILE():
     )
     POP()
     POP()
-    while row.attribute.breaks_PB:
+    start_break = row.attribute.SS_break.pop()
+    while row.attribute.breaks_PB and len(row.attribute.breaks_PB) > start_break:
         Memory().set_new_command(
             AddressingMode(
                 Command.JP,
@@ -308,19 +317,20 @@ def SAVE_WHILE():
             None
         )
     )
-    while row.attribute.continues_PB:
+
+    start_cont = row.attribute.SS_cont.pop()
+    while row.attribute.continues_PB and len(row.attribute.continues_PB) > start_cont:
         Memory().set_new_command(
             AddressingMode(
                 Command.JP,
-                Semantic().stack[TOP],
+                Arg(AddressType.NUM, row.attribute.start_addr_in_PBs[-1]),
                 None,
                 None
             ),
             idx = row.attribute.continues_PB.pop()
         )
     POP()
-
-
+    row.attribute.start_addr_in_PBs.pop()
 
 def RELOP0():
     Semantic().stack.append(Arg(AddressType.NUM, 0))
@@ -351,17 +361,77 @@ def SET_RELOP():
     POP()
     Semantic().stack.append(arg3)
 
-def POW_USED():
-    if Memory().pow_idx is not None:
-        Memory().pow_idx = len(Semantic().stack) - 1
+def POW_INC():
+    Memory().pow_idx += 1
 
-def POW():
-    if Memory().pow_idx is None:
-        return
-    # while len(Semantic().stack) - 1 > Memory().pow_idx:
-    #     a = 
+def CHK_POW():
+    zero = Arg(AddressType.NUM, 0)
+    
+    while Memory().pow_idx > 0:
+        R_itmt = Arg(AddressType.DIRECT, Memory().get_new_tmp())
+        R_cond = Arg(AddressType.DIRECT, Memory().get_new_tmp())
+        R_res  = Arg(AddressType.DIRECT, Memory().get_new_tmp())
+        Memory().set_new_command(
+            AddressingMode(
+                Command.ASSIGN,
+                Semantic().stack[TOP],
+                R_itmt,
+                None
+            )
+        ),
+        Memory().set_new_command(
+            AddressingMode(
+                Command.ASSIGN,
+                Arg(AddressType.NUM, 1),
+                R_res,
+                None
+            )
+        ),
+        Memory().set_new_command(
+            AddressingMode(
+                Command.LT,
+                zero,
+                R_itmt,
+                R_cond,
+            )
+        )
+        Memory().set_new_command(
+            AddressingMode(
+                Command.JPF,
+                R_cond,
+                Arg(AddressType.NUM, Memory().prog_p + 4),
+                None
+            )
+        )
+        Memory().set_new_command(
+            AddressingMode(
+                Command.SUB,
+                R_itmt,
+                Arg(AddressType.NUM, 1),
+                R_itmt
+            )
+        )
+        Memory().set_new_command(
+            AddressingMode(
+                Command.MULT,
+                Semantic().stack[TOP-1],
+                R_res,
+                R_res
+            )
+        )
+        Memory().set_new_command(
+            AddressingMode(
+                Command.JP,
+                Arg(AddressType.NUM,Memory().prog_p - 4),
+                None,
+                None
+            )
+        )
+        POP()
+        POP()
+        Semantic().stack.append(R_res)
+        Memory().pow_idx -= 1
 
-    Memory().pow_idx = None
 
 def PID(lexeme: str):
     row = SymbolTable().find_row(lexeme, Semantic().current_scope)
@@ -377,9 +447,13 @@ def PID(lexeme: str):
 def PID2(lexeme: str):
     row = SymbolTable().find_row(lexeme, Semantic().current_scope, force_mem_addr=True)
     Semantic().stack.append(Arg(AddressType.DIRECT, row.attribute.mem_addr))
+    # SHIT CODE :/
+    Memory().pow_idx -= 1
 
 def PNUM(NUM: str):
     Semantic().stack.append(Arg(AddressType.NUM, NUM))
+    # SHIT CODE :/
+    Memory().pow_idx -= 1
 
 def PRINT():
     Memory().set_new_command(

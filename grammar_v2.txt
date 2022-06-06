@@ -44,7 +44,7 @@ Term -> Factor Term_Prime
 Term_Prime -> * Factor #MULT Term_Prime
 Term_Prime -> EPSILON
 Factor -> Atom Power
-Power -> ** #POW_USED Factor
+Power -> ** Factor
 Power -> Primary
 Primary -> [ #SET_PT Expression #MOVE_PT ] Primary
 Primary -> #CALL ( Arguments ) #JP_FUNC Primary
