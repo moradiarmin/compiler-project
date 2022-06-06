@@ -53,7 +53,7 @@ class SymbolTable(metaclass=Singleton):
             end = len(self.table)
 
         for i in range(start, end):
-            if self.table[i].lexeme != lexeme:
+            if self.table[i].lexeme != lexeme or self.table[i].attribute.scope_no != scope_no:
                 continue
             if force_mem_addr and self.table[i].attribute.mem_addr is None:
                 continue

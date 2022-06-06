@@ -31,7 +31,7 @@ class CodeGenerator:
             func(prev_action[1:])
         else:
             func()
-        print(SymbolTable().table[-1].lexeme, action, self.last_parsed_token, Semantic().stack)
+
 
     def fill_first_and_last(self):
         def _find_main_row():

@@ -198,12 +198,15 @@ def CHG_SCOPE(lexeme: int):
     row.attribute.start_addr_in_PB = Memory().prog_p
     Semantic().create_new_scope()
     SymbolTable().scope_boundary[Semantic().current_scope] = (len(SymbolTable().table) - 1, None)
-    row.attribute.scope_no = Semantic().current_scope
     row.attribute.mem_addr = Memory().get_new_data_addr()
     row.attribute.ret_val_addr = Memory().get_new_data_addr()
     row.attribute.jp_addr = Memory().get_new_data_addr()
 
 def END_FUNC():
+    # always make sure having a return at the end
+    Semantic().stack.append(Arg(AddressType.NUM, 0))
+    SET_RET_VAL()
+    
     row = SymbolTable().find_func_scope(Semantic().current_scope)
     arg2 = Arg(AddressType.INDIRECT, row.attribute.jp_addr)
     Memory().set_new_command(
@@ -214,6 +217,7 @@ def END_FUNC():
             None
         )
     )
+
 
     Semantic().switch_scope(Semantic().scope_tree[Semantic().current_scope].father.scope_no)
     if Semantic().current_scope == 0:
