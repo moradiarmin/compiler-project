@@ -10,8 +10,9 @@ _semantic_error_msg: Dict[SemanticErrorType, str] = {
     SemanticErrorType.BREAK_STMT: "#{} : Semantic Error! No 'while' found for 'break'.",
     SemanticErrorType.MISMATCH_PARAM_FUNC: "#{} : Semantic Error! Mismatch in numbers of arguments of '{}'.",
     SemanticErrorType.MAIN_FUNC_DEF: "#{} : Semantic Error! main function not found.",
-    SemanticErrorType.TYPE_MISMATCH: "#{} : Semantic Error! Void type in operands."
-}
+    SemanticErrorType.TYPE_MISMATCH: "#{} : Semantic Error! Void type in operands.",
+    SemanticErrorType.OVERLOADING: "#{} : Semantic Error! Function '{}' has already been defined with this number of arguments."
+}  
 
 class Semantic(metaclass=Singleton):
 
@@ -69,7 +70,7 @@ class Semantic(metaclass=Singleton):
         self.current_scope = scope_no
 
     def error_handler(self, err_type: SemanticErrorType, lexeme: str=None) -> None:
-        if err_type in [SemanticErrorType.SCOPING, SemanticErrorType.MISMATCH_PARAM_FUNC]:
+        if err_type in [SemanticErrorType.SCOPING, SemanticErrorType.MISMATCH_PARAM_FUNC, SemanticErrorType.OVERLOADING]:
             msg = _semantic_error_msg[err_type].format(self.lineno, lexeme)     
         else:
             msg = _semantic_error_msg[err_type].format(self.lineno)

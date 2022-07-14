@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional, Union
 
 from core.scanner import TokenType
 from data_class.node import Node
@@ -44,9 +44,9 @@ class SymbolTable(metaclass=Singleton):
     def find_row(self, lexeme: str, scope_no: int, force_mem_addr: bool = False) -> Optional[Row]:
         start, end = self.scope_boundary[scope_no]
         if end is None:
-            end = len(self.table)
+            end = len(self.table) - 1
 
-        for i in range(end, start, -1):
+        for i in range(end, start - 1, -1):
             if self.table[i].lexeme != lexeme or self.table[i].attribute.scope_no != scope_no:
                 continue
             if force_mem_addr and self.table[i].attribute.mem_addr is None:
@@ -59,13 +59,21 @@ class SymbolTable(metaclass=Singleton):
 
         return self.find_row(lexeme, Semantic().scope_tree[scope_no].father.scope_no, force_mem_addr)
 
-    def find_func_scope(self, scope_no: int) -> FuncAttribute:
+    def find_func_scope(self, scope_no: int, lexeme: Optional[str]=None, all: bool = False) -> Union[Row, List[Row]]:
         start, end = self.scope_boundary[scope_no]
         if end is None:
             end = len(self.table)
 
-        for i in range(start, end):
+        all_funcs: List[Row] = list()
+        for i in range(end, start - 1, -1):
             if isinstance(self.table[i].attribute, FuncAttribute):
                 row = self.table[i]
-                return row
-    
+                
+                if lexeme is not None and row.lexeme != lexeme:
+                    continue
+
+                if not all:
+                    return row
+                all_funcs.append(row)
+        
+        return all_funcs
