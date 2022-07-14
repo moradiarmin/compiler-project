@@ -23,7 +23,7 @@ class CodeGenerator:
         routines = import_module(f"utils.routines")
         func = getattr(routines, action[1:])
 
-        if action in [Action.CALL, Action.CHG_SCOPE, Action.PID, Action.PID2, Action.PNUM, Action.NARG]:
+        if action in [Action.CALL, Action.CHG_SCOPE, Action.PID, Action.PID2, Action.PNUM, Action.NARG, Action.SCOPING]:
             func(self.last_parsed_token)
         elif action == "#MATH":
             func(prev_action[1:])
@@ -36,8 +36,11 @@ class CodeGenerator:
             for row in SymbolTable().table:
                 if row.lexeme == "main" and isinstance(row.attribute, FuncAttribute):
                     return row
-        main = _find_main_row()
 
+        main = _find_main_row()
+        if main is None:
+            return
+            
         Memory().set_new_command(
             AddressingMode(
                 Command.ASSIGN,

@@ -36,3 +36,6 @@ class Action:
     PID2 = "#PID2"
     PNUM = "#PNUM"
     PRINT = "#PRINT"
+
+    # for semantic analysis
+    SCOPING = "#SCOPING"

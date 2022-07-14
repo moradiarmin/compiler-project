@@ -1,13 +1,16 @@
 from typing import Literal
 
+from sqlalchemy import func
+
 from data_class.addressing_mode import AddressingMode, Arg
 from data_class.symbol_table import Attribute, FuncAttribute, ItmtAttribute
 from enums.addressing import AddressType
 from enums.command import Command
+from enums.error import SemanticErrorType
 from modules.semantic import Semantic
 from modules.memory import Memory
 from modules.symbol_table import SymbolTable
-from utils.constants import TOP
+from utils.constants import ERR, FATAL, MARKER, TOP
 
 def RECORD_STACK():
     Semantic().stack_recorder.append(len(Semantic().stack))
@@ -19,15 +22,21 @@ def PRUNE_STACK():
 
 def APPEND_BREAK_PB():
     row = SymbolTable().find_row('while', Semantic().current_scope)
-    row.attribute.breaks_PB.append(Memory().prog_p)
-    SAVE()
-    POP()
+    if isinstance(row.attribute, ItmtAttribute):
+        row.attribute.breaks_PB.append(Memory().prog_p)
+        SAVE()
+        POP()
+    else:
+        Semantic().error_handler(SemanticErrorType.BREAK_STMT)
 
 def APPEND_CONT_PB():
     row = SymbolTable().find_row('while', Semantic().current_scope)
-    row.attribute.continues_PB.append(Memory().prog_p)
-    SAVE()
-    POP()
+    if isinstance(row.attribute, ItmtAttribute):
+        row.attribute.continues_PB.append(Memory().prog_p)
+        SAVE()
+        POP()
+    else:
+        Semantic().error_handler(SemanticErrorType.CONT_STMT)
 
 def SET_PT():
     arg2 = Arg(AddressType.DIRECT, Memory().get_new_tmp())
@@ -65,17 +74,46 @@ def MATH(command: Literal[Command.ADD, Command.MULT, Command.SUB]):
 
 def CALL(lexeme: str):
     row = SymbolTable().find_row(lexeme, Semantic().current_scope)
-    assert isinstance(row.attribute, FuncAttribute)
-    
     POP()
-    Semantic().stack.append(Arg(AddressType.DIRECT, row.attribute.ret_val_addr))
-    Semantic().stack.append(Arg(AddressType.NUM, row.attribute.start_addr_in_PB))
-    Semantic().stack.append(Arg(AddressType.DIRECT, row.attribute.jp_addr))
-    
-    for addr in row.attribute.args_addr[::-1]:
-        Semantic().stack.append(Arg(AddressType.DIRECT, addr))
+    if isinstance(row.attribute, FuncAttribute):
+        Semantic().stack.append(Arg(AddressType.DIRECT, row.attribute.ret_val_addr))
+        Semantic().stack.append(Arg(AddressType.NUM, row.attribute.start_addr_in_PB))
+        Semantic().stack.append(Arg(AddressType.DIRECT, row.attribute.jp_addr))
+        Semantic().stack.append(f"{MARKER}.{lexeme}")
+
+        for addr in row.attribute.args_addr[::-1]:
+            Semantic().stack.append(Arg(AddressType.DIRECT, addr))
+    else:
+        Semantic().stack.append(Arg(AddressType.DIRECT, ERR))
+        Semantic().stack.append(Arg(AddressType.DIRECT, ERR))
+        Semantic().stack.append(Arg(AddressType.DIRECT, ERR))
+        Semantic().stack.append(f"{MARKER}.{lexeme}")
+
+        
 
 def JP_FUNC():
+    top = Semantic().stack[TOP]
+
+    err_exists = not str(top).startswith(MARKER)
+    while not str(top).startswith(MARKER):
+        POP()
+        top = Semantic().stack[TOP]
+
+    _, func_name = POP().split('.')
+    
+    row = SymbolTable().find_row(func_name, 0)
+    if row is None:
+        POP()
+        POP()
+        POP()
+        Semantic().stack.append(Arg(AddressType.DIRECT, ERR))
+        return
+
+    if err_exists:
+        Semantic().error_handler(SemanticErrorType.MISMATCH_PARAM_FUNC, func_name)
+    if not row.attribute.have_returned_stmt:
+        Semantic().error_handler(SemanticErrorType.TYPE_MISMATCH)
+        
     # fill jp_addr first
     Memory().set_new_command(
         AddressingMode(
@@ -107,8 +145,15 @@ def JP_FUNC():
     POP()
     Semantic().stack.append(arg)
 
+
 def ASSIGN():
     arg2 = Semantic().stack[TOP-1]
+    if isinstance(arg2, str): # MARKER.[func_name] or FATAL
+        POP()
+        if arg2.startswith(MARKER):
+            Semantic().stack.append(FATAL)
+        return
+
     if int(arg2.val) >= Memory().start_tmp_p:
         Semantic().stack[TOP-1] = Arg(AddressType.INDIRECT, arg2.val)
         
@@ -162,8 +207,10 @@ def POP(idx=None):
 def GIVE_BACK():
     Memory().data_p -= Memory().unit
 
-def SET_RET_VAL():
+def SET_RET_VAL(end_func: bool = False):
     row = SymbolTable().find_func_scope(Semantic().current_scope)
+    if not end_func:
+        row.attribute.have_returned_stmt = True
     arg2 = Arg(AddressType.DIRECT, row.attribute.ret_val_addr)
     Memory().set_new_command(
         AddressingMode(
@@ -206,7 +253,7 @@ def CHG_SCOPE(lexeme: int):
 def END_FUNC():
     # always make sure having a return at the end
     Semantic().stack.append(Arg(AddressType.NUM, 0))
-    SET_RET_VAL()
+    SET_RET_VAL(end_func=True)
     
     row = SymbolTable().find_func_scope(Semantic().current_scope)
     arg2 = Arg(AddressType.INDIRECT, row.attribute.jp_addr)
@@ -361,78 +408,6 @@ def SET_RELOP():
     POP()
     Semantic().stack.append(arg3)
 
-def POW_INC():
-    Memory().pow_idx += 1
-
-def CHK_POW():
-    zero = Arg(AddressType.NUM, 0)
-    
-    while Memory().pow_idx > 0:
-        R_itmt = Arg(AddressType.DIRECT, Memory().get_new_tmp())
-        R_cond = Arg(AddressType.DIRECT, Memory().get_new_tmp())
-        R_res  = Arg(AddressType.DIRECT, Memory().get_new_tmp())
-        Memory().set_new_command(
-            AddressingMode(
-                Command.ASSIGN,
-                Semantic().stack[TOP],
-                R_itmt,
-                None
-            )
-        ),
-        Memory().set_new_command(
-            AddressingMode(
-                Command.ASSIGN,
-                Arg(AddressType.NUM, 1),
-                R_res,
-                None
-            )
-        ),
-        Memory().set_new_command(
-            AddressingMode(
-                Command.LT,
-                zero,
-                R_itmt,
-                R_cond,
-            )
-        )
-        Memory().set_new_command(
-            AddressingMode(
-                Command.JPF,
-                R_cond,
-                Arg(AddressType.NUM, Memory().prog_p + 4),
-                None
-            )
-        )
-        Memory().set_new_command(
-            AddressingMode(
-                Command.SUB,
-                R_itmt,
-                Arg(AddressType.NUM, 1),
-                R_itmt
-            )
-        )
-        Memory().set_new_command(
-            AddressingMode(
-                Command.MULT,
-                Semantic().stack[TOP-1],
-                R_res,
-                R_res
-            )
-        )
-        Memory().set_new_command(
-            AddressingMode(
-                Command.JP,
-                Arg(AddressType.NUM,Memory().prog_p - 4),
-                None,
-                None
-            )
-        )
-        POP()
-        POP()
-        Semantic().stack.append(R_res)
-        Memory().pow_idx -= 1
-
-
 def PID(lexeme: str):
     row = SymbolTable().find_row(lexeme, Semantic().current_scope)
     addr = row.attribute.mem_addr
@@ -446,14 +421,13 @@ def PID(lexeme: str):
 
 def PID2(lexeme: str):
     row = SymbolTable().find_row(lexeme, Semantic().current_scope, force_mem_addr=True)
-    Semantic().stack.append(Arg(AddressType.DIRECT, row.attribute.mem_addr))
-    # SHIT CODE :/
-    Memory().pow_idx -= 1
+    if row is not None:
+        Semantic().stack.append(Arg(AddressType.DIRECT, row.attribute.mem_addr))
+    else:
+        Semantic().stack.append(Arg(AddressType.DIRECT, ERR))        
 
 def PNUM(NUM: str):
     Semantic().stack.append(Arg(AddressType.NUM, NUM))
-    # SHIT CODE :/
-    Memory().pow_idx -= 1
 
 def PRINT():
     Memory().set_new_command(
@@ -465,3 +439,11 @@ def PRINT():
         )
     )
     POP()
+
+def SCOPING(lexeme: str):
+    row = SymbolTable().find_row(lexeme, Semantic().current_scope)
+    if row.attribute.mem_addr is None:
+        Semantic().error_handler(SemanticErrorType.SCOPING, lexeme)
+
+def MAIN_FUNC_DEF():
+    Semantic().error_handler(SemanticErrorType.MAIN_FUNC_DEF)

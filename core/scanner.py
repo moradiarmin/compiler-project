@@ -20,7 +20,7 @@ class Scanner:
         self._inp_file: str = "def output(x):\n\tprint(x);\n\treturn 0;\n;\n\n" + open(input_dir).read() + " "
         self._save_dir: str = save_dir
 
-        self._current_line_num: int = 1
+        self._current_line_num: int = -4
         self._current_token_type: TokenType = None
         self._p1: int = 0
         self._p2: int = self._p1
@@ -94,6 +94,8 @@ class Scanner:
                 # handle new line
                 if ch=="\n":
                     self._current_line_num += 1
+                    Semantic().lineno += 1
+
                 dfa.move(dfa, ch)
                 if dfa.state in [FINAL_STATE, UNKNOWN]:
                     break
@@ -103,6 +105,7 @@ class Scanner:
                 self._p2 -= 1
                 if ch=="\n":
                     self._current_line_num -= 1
+                    Semantic().lineno -= 1
 
             # process new token
             if dfa.state == FINAL_STATE and self._current_token_type not in \

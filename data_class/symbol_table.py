@@ -15,6 +15,7 @@ class FuncAttribute(Attribute):
     ret_val_addr: int
     jp_addr: int
     start_addr_in_PB: int
+    have_returned_stmt: bool=False
 
 @dataclass
 class ItmtAttribute(Attribute):
