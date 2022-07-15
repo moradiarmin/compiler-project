@@ -165,9 +165,9 @@ class Parser:
                 
                 elif X == token.lexeme or X == token_type:
                     node.name = token.all_in_one
-                    token, token_type = self._call_scanner()
                     if token_type in [TokenType.ID, TokenType.NUMBER]:
                         self.code_generator.last_parsed_token = token.lexeme
+                    token, token_type = self._call_scanner()
                 else:
                     node.parent = None
                     self._errs.append(f'#{line_no} : syntax error, missing {X}')
