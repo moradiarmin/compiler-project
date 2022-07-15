@@ -24,7 +24,7 @@ Return_stmt -> return Return_Value
 Return_Value -> Expression #SET_RET_VAL
 Return_Value -> EPSILON #SET_RET_VAL2
 Global_stmt -> global ID #SCOPING
-Function_def -> def ID #CHG22_SCOPE ( Params ) #OVERLOADING : Statements #END_FUNC
+Function_def -> def ID #CHG_SCOPE ( Params ) #OVERLOADING : Statements #END_FUNC
 Params -> ID #NARG #SCOPING Params_Prime
 Params -> EPSILON
 Params_Prime -> , ID #NARG #SCOPING Params_Prime

@@ -38,3 +38,5 @@ class Action:
     PRINT = "#PRINT"
     SCOPING = "#SCOPING"
     OVERLOADING = "#OVERLOADING"
+    OP = "#OP"
+    FINISHED_OP = "#FINISHED_OP"

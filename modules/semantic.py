@@ -1,4 +1,4 @@
-from typing import Dict, List, Literal
+from typing import Dict, List
 from data_class.addressing_mode import Arg
 from data_class.node import Node
 from enums.error import SemanticErrorType
@@ -23,6 +23,7 @@ class Semantic(metaclass=Singleton):
         self.current_scope: int = None
         self.scope_tree: Dict[int, Node] = None
         self.no_scopes: int = None
+        self.no_op: bool = True
         self.lineno: int = None
 
     def __enter__(self) -> 'Semantic':
@@ -34,9 +35,8 @@ class Semantic(metaclass=Singleton):
             if not self.errs:
                 f.write('The input program is semantically correct.')
             else:
-                for err in self.errs:
-                    f.write(err)
-                    f.write("\n")
+                errs = "\n".join(self.errs)
+                f.write(errs)
 
                 # override output of code generator
                 with open('output.txt', 'w') as f2:

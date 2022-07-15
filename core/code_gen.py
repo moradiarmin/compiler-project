@@ -7,7 +7,6 @@ from data_class.addressing_mode import AddressingMode, Arg
 
 from enums.semantic_action import Action
 from modules.memory import Memory
-from modules.semantic import Semantic
 from modules.symbol_table import SymbolTable
 
 class CodeGenerator:

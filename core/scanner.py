@@ -5,7 +5,7 @@ from enums.token_type import TokenType
 from data_class.error import ScannerError as SError
 from data_class.token import Token
 from modules.semantic import Semantic
-from modules.symbol_table import Attribute, Row, SymbolTable
+from modules.symbol_table import SymbolTable
 from modules.dfa import *
 from utils.constants import EOF
 

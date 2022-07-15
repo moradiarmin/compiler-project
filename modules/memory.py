@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 from enums.addressing import AddressType
-from data_class.addressing_mode import AddressingMode, Arg
+from data_class.addressing_mode import AddressingMode
 from enums.command import Command
 
 from utils.patterns.singleton import Singleton
