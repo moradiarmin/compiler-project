@@ -466,7 +466,7 @@ def OVERLOADING():
     func_name = SymbolTable().table[symboltable_ind].lexeme
     func_scope = Semantic().scope_tree[scope_no].father.scope_no
     all_funcs = SymbolTable().find_func_scope(func_scope, lexeme=func_name, all=True)
-    if len(all_funcs) == 1:
+    if len(all_funcs) <= 1:
         return
 
     target_func = all_funcs.pop(0)
